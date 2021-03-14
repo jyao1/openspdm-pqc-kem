@@ -388,7 +388,9 @@ elseif(TOOLCHAIN STREQUAL "VS2019")
         SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LIBPATH:'%VCToolsInstallDir%lib/x86' /LIBPATH:'%UniversalCRTSdkDir%lib/%UCRTVersion%/ucrt/x86' /LIBPATH:'%WindowsSdkDir%lib/%WindowsSDKLibVersion%/um/x86'")
     endif()
 endif()
-    
+
+SET(CMAKE_C_STANDARD_LIBRARIES "${CMAKE_C_STANDARD_LIBRARIES} ${PROJECT_SOURCE_DIR}/oqs/lib/oqs.lib")
+
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 
@@ -422,9 +424,11 @@ if(TESTTYPE STREQUAL "SpdmEmu")
             Library/SpdmRequesterLib
             Library/SpdmResponderLib
             Library/SpdmCryptLib
+            Library/SpdmPqcCryptLib
             Library/SpdmSecuredMessageLib
             Library/SpdmTransportMctpLib
             Library/SpdmTransportPciDoeLib
+            OsStub/PqcCryptLibOqs
             OsStub/BaseMemoryLib
             OsStub/DebugLib
             OsStub/DebugLibNull
@@ -438,15 +442,19 @@ if(TESTTYPE STREQUAL "SpdmEmu")
             SpdmEmu/SpdmResponderEmu
             SpdmDump
     )
+    SUBDIRS(UnitTest/TestPqcCryptLib
+    )
        
 elseif(TESTTYPE STREQUAL "UnitTest")
     SUBDIRS(Library/SpdmCommonLib
             Library/SpdmRequesterLib
             Library/SpdmResponderLib
             Library/SpdmCryptLib
+            Library/SpdmPqcCryptLib
             Library/SpdmSecuredMessageLib
             Library/SpdmTransportMctpLib
             Library/SpdmTransportPciDoeLib
+            OsStub/PqcCryptLibOqs
             OsStub/BaseMemoryLib
             OsStub/DebugLib
             OsStub/RngLib
@@ -463,6 +471,7 @@ elseif(TESTTYPE STREQUAL "UnitTest")
     SUBDIRS(UnitTest/TestSpdmRequester
             UnitTest/TestSpdmResponder
             UnitTest/TestCryptLib
+            UnitTest/TestPqcCryptLib
             UnitTest/TestSize/TestSizeOfSpdmRequester
             UnitTest/TestSize/TestSizeOfSpdmResponder
     )
