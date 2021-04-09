@@ -26,6 +26,7 @@ SET(src_cryptlib_openssl
     pk/ecd.c
     pk/ecx.c
     pk/dh.c
+    pk/pqc_hybrid.c
     pk/sm2.c
     pk/rsa_basic.c
     pk/rsa_ext.c

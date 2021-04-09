@@ -112,7 +112,7 @@ void test_spdm_responder_finish_case1(void **state) {
   hash_size = spdm_get_hash_size (m_use_hash_algo);
   hmac_size = spdm_get_hash_size (m_use_hash_algo);
   ptr = m_spdm_finish_request1.signature;
-  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
   cert_buffer = (uint8 *)data1 + sizeof(spdm_cert_chain_t) + hash_size;
   cert_buffer_size = data_size1 - (sizeof(spdm_cert_chain_t) + hash_size);
   spdm_hash_all (m_use_hash_algo, cert_buffer, cert_buffer_size, cert_buffer_hash);
@@ -185,7 +185,7 @@ void test_spdm_responder_finish_case2(void **state) {
   spdm_context->local_context.capability.flags |= SPDM_GET_CAPABILITIES_REQUEST_FLAGS_HANDSHAKE_IN_THE_CLEAR_CAP;
   hash_size = spdm_get_hash_size (m_use_hash_algo);
   ptr = m_spdm_finish_request2.signature;
-  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
   cert_buffer = (uint8 *)data1 + sizeof(spdm_cert_chain_t) + hash_size;
   cert_buffer_size = data_size1 - (sizeof(spdm_cert_chain_t) + hash_size);
   spdm_hash_all (m_use_hash_algo, cert_buffer, cert_buffer_size, cert_buffer_hash);
@@ -262,7 +262,7 @@ void test_spdm_responder_finish_case3(void **state) {
   hash_size = spdm_get_hash_size (m_use_hash_algo);
   hmac_size = spdm_get_hash_size (m_use_hash_algo);
   ptr = m_spdm_finish_request1.signature;
-  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
   cert_buffer = (uint8 *)data1 + sizeof(spdm_cert_chain_t) + hash_size;
   cert_buffer_size = data_size1 - (sizeof(spdm_cert_chain_t) + hash_size);
   spdm_hash_all (m_use_hash_algo, cert_buffer, cert_buffer_size, cert_buffer_hash);
@@ -341,7 +341,7 @@ void test_spdm_responder_finish_case4(void **state) {
   hash_size = spdm_get_hash_size (m_use_hash_algo);
   hmac_size = spdm_get_hash_size (m_use_hash_algo);
   ptr = m_spdm_finish_request1.signature;
-  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
   cert_buffer = (uint8 *)data1 + sizeof(spdm_cert_chain_t) + hash_size;
   cert_buffer_size = data_size1 - (sizeof(spdm_cert_chain_t) + hash_size);
   spdm_hash_all (m_use_hash_algo, cert_buffer, cert_buffer_size, cert_buffer_hash);
@@ -421,7 +421,7 @@ void test_spdm_responder_finish_case5(void **state) {
   hash_size = spdm_get_hash_size (m_use_hash_algo);
   hmac_size = spdm_get_hash_size (m_use_hash_algo);
   ptr = m_spdm_finish_request1.signature;
-  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
   cert_buffer = (uint8 *)data1 + sizeof(spdm_cert_chain_t) + hash_size;
   cert_buffer_size = data_size1 - (sizeof(spdm_cert_chain_t) + hash_size);
   spdm_hash_all (m_use_hash_algo, cert_buffer, cert_buffer_size, cert_buffer_hash);
@@ -502,7 +502,7 @@ void test_spdm_responder_finish_case6(void **state) {
   hash_size = spdm_get_hash_size (m_use_hash_algo);
   hmac_size = spdm_get_hash_size (m_use_hash_algo);
   ptr = m_spdm_finish_request1.signature;
-  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
   cert_buffer = (uint8 *)data1 + sizeof(spdm_cert_chain_t) + hash_size;
   cert_buffer_size = data_size1 - (sizeof(spdm_cert_chain_t) + hash_size);
   spdm_hash_all (m_use_hash_algo, cert_buffer, cert_buffer_size, cert_buffer_hash);

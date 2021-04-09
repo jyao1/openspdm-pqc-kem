@@ -13,7 +13,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <library/spdm_secured_message_lib.h>
 
 typedef struct {
-  uint8                dhe_secret[MAX_DHE_KEY_SIZE];
+  uint8                shared_secret[MAX_DHE_KEY_SIZE + MAX_PQC_KEM_SHARED_KEY_SIZE];
   uint8                handshake_secret[MAX_HASH_SIZE];
   uint8                master_secret[MAX_HASH_SIZE];
 } spdm_session_info_struct_master_secret_t;
@@ -49,12 +49,14 @@ typedef struct {
   uint16                               dhe_named_group;
   uint16                               aead_cipher_suite;
   uint16                               key_schedule;
+  pqc_algo_t                           pqc_kem_algo;
   uintn                                hash_size;
   uintn                                dhe_key_size;
   uintn                                aead_key_size;
   uintn                                aead_iv_size;
   uintn                                aead_block_size;
   uintn                                aead_tag_size;
+  uintn                                pqc_shared_secret_size;
   boolean                              use_psk;
   spdm_session_state_t                   session_state;
   spdm_session_info_struct_master_secret_t      master_secret;

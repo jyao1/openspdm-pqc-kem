@@ -272,6 +272,7 @@ SET(src_openssllib
     openssl/crypto/ec/ecp_oct.c
     openssl/crypto/ec/ecp_smpl.c
     openssl/crypto/ec/ecx_meth.c
+    openssl/crypto/ec/oqs_meth.c
     openssl/crypto/err/err.c
     openssl/crypto/err/err_prn.c
     openssl/crypto/evp/bio_b64.c

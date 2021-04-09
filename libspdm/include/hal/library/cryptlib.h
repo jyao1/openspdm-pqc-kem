@@ -2357,6 +2357,54 @@ sm2_get_public_key_from_x509 (
   );
 
 /**
+  Retrieve the PQC Private key from the password-protected PEM key data.
+
+  @param[in]  pem_data      Pointer to the PEM-encoded key data to be retrieved.
+  @param[in]  pem_size      size of the PEM key data in bytes.
+  @param[in]  password     NULL-terminated passphrase used for encrypted PEM key data.
+  @param[out] pqc_hybrid_context   Pointer to new-generated PQC context which contain the retrieved
+                           PQC private key component. Use pqc_hybrid_free() function to free the
+                           resource.
+
+  If pem_data is NULL, then return FALSE.
+  If pqc_hybrid_context is NULL, then return FALSE.
+
+  @retval  TRUE   PQC Private key was retrieved successfully.
+  @retval  FALSE  Invalid PEM key data or incorrect password.
+
+**/
+boolean
+pqc_hybrid_get_private_key_from_pem (
+  IN   const uint8  *pem_data,
+  IN   uintn        pem_size,
+  IN   const char8  *password,
+  OUT  void         **pqc_hybrid_context
+  );
+
+/**
+  Retrieve the QPC public key from one DER-encoded X509 certificate.
+
+  @param[in]  cert         Pointer to the DER-encoded X509 certificate.
+  @param[in]  cert_size     size of the X509 certificate in bytes.
+  @param[out] pqc_hybrid_context   Pointer to new-generated QPC context which contain the retrieved
+                           QPC public key component. Use pqc_hybrid__free() function to free the
+                           resource.
+
+  If cert is NULL, then return FALSE.
+  If pqc_hybrid_context is NULL, then return FALSE.
+
+  @retval  TRUE   QPC public key was retrieved successfully.
+  @retval  FALSE  Fail to retrieve QPC public key from X509 certificate.
+
+**/
+boolean
+pqc_hybrid_get_public_key_from_x509 (
+  IN   const uint8  *cert,
+  IN   uintn        cert_size,
+  OUT  void         **pqc_hybrid_context
+  );
+
+/**
   Retrieve the tag and length of the tag.
 
   @param ptr      The position in the ASN.1 data
@@ -3899,6 +3947,77 @@ sm2_ecdsa_sign (
 boolean
 sm2_ecdsa_verify (
   IN  void         *sm2_context,
+  IN  uintn        hash_nid,
+  IN  const uint8  *message,
+  IN  uintn        size,
+  IN  const uint8  *signature,
+  IN  uintn        sig_size
+  );
+
+//=====================================================================================
+//    PQC Hybrid Signing
+//=====================================================================================
+
+/**
+  Release the specified PQC context.
+  
+  @param[in]  pqc_hybrid_context  Pointer to the PQC context to be released.
+
+**/
+void
+pqc_hybrid_free (
+  IN  void  *pqc_hybrid_context
+  );
+
+/**
+  Carries out the PQC signature.
+
+  Signature format: 
+  | 4 bytes classic algo signature size | classic algo signature | pqc algo signature |
+
+  @param[in]       pqc_hybrid_context    Pointer to PQC context for signature generation.
+  @param[in]       hash_nid      hash NID
+  @param[in]       message       Pointer to octet message hash to be signed.
+  @param[in]       size          size of the message hash in bytes.
+  @param[out]      signature    Pointer to buffer to receive PQC signature.
+  @param[in, out]  sig_size      On input, the size of signature buffer in bytes.
+                                On output, the size of data returned in signature buffer in bytes.
+
+  @retval  TRUE   signature successfully generated.
+  @retval  FALSE  signature generation failed.
+  @retval  FALSE  sig_size is too small.
+
+**/
+boolean
+pqc_hybrid_sign (
+  IN      void         *pqc_hybrid_context,
+  IN      uintn        hash_nid,
+  IN      const uint8  *message,
+  IN      uintn        size,
+  OUT     uint8        *signature,
+  IN OUT  uintn        *sig_size
+  );
+
+/**
+  Verifies the PQC signature.
+
+  Signature format: 
+  | 4 bytes classic algo signature size | classic algo signature | pqc algo signature |
+
+  @param[in]  pqc_hybrid_context    Pointer to PQC context for signature verification.
+  @param[in]  hash_nid      hash NID
+  @param[in]  message       Pointer to octet message hash to be checked.
+  @param[in]  size          size of the message hash in bytes.
+  @param[in]  signature    Pointer to PQC signature to be verified.
+  @param[in]  sig_size      size of signature in bytes.
+
+  @retval  TRUE   Valid signature encoded.
+  @retval  FALSE  Invalid signature or invalid PQC context.
+
+**/
+boolean
+pqc_hybrid_verify (
+  IN  void         *pqc_hybrid_context,
   IN  uintn        hash_nid,
   IN  const uint8  *message,
   IN  uintn        size,

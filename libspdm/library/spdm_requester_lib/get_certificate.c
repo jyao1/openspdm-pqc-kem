@@ -13,8 +13,10 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 typedef struct {
   spdm_message_header_t  header;
-  uint16               portion_length;
-  uint16               remainder_length;
+  uint16               portion_length_reserved;
+  uint16               remainder_length_reserved;
+  uint32               portion_length;
+  uint32               remainder_length;
   uint8                cert_chain[MAX_SPDM_CERT_CHAIN_BLOCK_LEN];
 } spdm_certificate_response_max_t;
 
@@ -68,7 +70,7 @@ try_spdm_get_certificate (
     return RETURN_UNSUPPORTED;
   }
 
-  init_managed_buffer (&certificate_chain_buffer, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+  init_managed_buffer (&certificate_chain_buffer, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
   length = MIN(length, MAX_SPDM_CERT_CHAIN_BLOCK_LEN);
 
   if (slot_id >= MAX_SPDM_SLOT_COUNT) {
@@ -86,7 +88,9 @@ try_spdm_get_certificate (
     spdm_request.header.request_response_code = SPDM_GET_CERTIFICATE;
     spdm_request.header.param1 = slot_id;
     spdm_request.header.param2 = 0;
-    spdm_request.Offset = (uint16)get_managed_buffer_size (&certificate_chain_buffer);
+    spdm_request.Offset_reserved = 0;
+    spdm_request.length_reserved = 0;
+    spdm_request.Offset = (uint32)get_managed_buffer_size (&certificate_chain_buffer);
     spdm_request.length = length;
     DEBUG((DEBUG_INFO, "request (Offset 0x%x, size 0x%x):\n", spdm_request.Offset, spdm_request.length));
 
@@ -173,6 +177,7 @@ try_spdm_get_certificate (
     status = RETURN_SECURITY_VIOLATION;
     goto done;
   }
+  
   spdm_context->connection_info.peer_used_cert_chain_buffer_size = get_managed_buffer_size(&certificate_chain_buffer);
   copy_mem (spdm_context->connection_info.peer_used_cert_chain_buffer, get_managed_buffer(&certificate_chain_buffer), get_managed_buffer_size(&certificate_chain_buffer));
 

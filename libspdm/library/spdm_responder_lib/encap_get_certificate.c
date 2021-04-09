@@ -51,6 +51,8 @@ spdm_get_encap_request_get_certificate (
   spdm_request->header.request_response_code = SPDM_GET_CERTIFICATE;
   spdm_request->header.param1 = spdm_context->encap_context.req_slot_id;
   spdm_request->header.param2 = 0;
+  spdm_request->Offset_reserved = 0;
+  spdm_request->length_reserved = 0;
   spdm_request->Offset = (uint16)get_managed_buffer_size (&spdm_context->encap_context.certificate_chain_buffer);
   spdm_request->length = MAX_SPDM_CERT_CHAIN_BLOCK_LEN;
   DEBUG((DEBUG_INFO, "request (Offset 0x%x, size 0x%x):\n", spdm_request->Offset, spdm_request->length));
@@ -150,6 +152,7 @@ spdm_process_encap_response_certificate (
     spdm_context->encap_context.error_state = SPDM_STATUS_ERROR_CERTIFICATE_FAILURE;
     return RETURN_SECURITY_VIOLATION;
   }
+  
   spdm_context->connection_info.peer_used_cert_chain_buffer_size = get_managed_buffer_size(&spdm_context->encap_context.certificate_chain_buffer);
   copy_mem (spdm_context->connection_info.peer_used_cert_chain_buffer, get_managed_buffer(&spdm_context->encap_context.certificate_chain_buffer), get_managed_buffer_size(&spdm_context->encap_context.certificate_chain_buffer));
 

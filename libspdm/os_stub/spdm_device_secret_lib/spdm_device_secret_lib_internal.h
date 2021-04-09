@@ -11,6 +11,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define __SPDM_DEVICE_SECRET_LIB_INTERNAL_H__
 
 #include <library/spdm_device_secret_lib.h>
+#include <library/pqc_crypt_lib.h>
 
 #define MEASUREMENT_BLOCK_NUMBER   5
 #define MEASUREMENT_MANIFEST_SIZE  128
@@ -86,6 +87,80 @@ read_responder_root_public_certificate_by_size (
   OUT uintn   *size,
   OUT void    **hash,
   OUT uintn   *hash_size
+  );
+
+//
+// PQC public key
+//
+boolean
+read_responder_pqc_public_key (
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  );
+
+boolean
+read_requester_pqc_public_key (
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  );
+
+//
+// PQC hybrid cert
+//
+boolean
+read_hybrid_responder_root_public_certificate (
+  IN  uint32  bash_hash_algo,
+  IN  uint32  base_asym_algo,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size,
+  OUT void    **hash,
+  OUT uintn   *hash_size
+  );
+
+boolean
+read_hybrid_requester_root_public_certificate (
+  IN  uint32  bash_hash_algo,
+  IN  uint16  req_base_asym_alg,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size,
+  OUT void    **hash,
+  OUT uintn   *hash_size
+  );
+
+boolean
+read_hybrid_responder_public_certificate_chain (
+  IN  uint32  bash_hash_algo,
+  IN  uint32  base_asym_algo,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size,
+  OUT void    **hash,
+  OUT uintn   *hash_size
+  );
+
+boolean
+read_hybrid_requester_public_certificate_chain (
+  IN  uint32  bash_hash_algo,
+  IN  uint16  req_base_asym_alg,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size,
+  OUT void    **hash,
+  OUT uintn   *hash_size
+  );
+
+char8 *
+get_hybrid_algo_tradition_name (
+  IN  uint32  base_asym_algo
+  );
+
+char8 *
+get_hybrid_algo_pqc_name (
+  IN  pqc_algo_t  pqc_sig_algo
   );
 
 //

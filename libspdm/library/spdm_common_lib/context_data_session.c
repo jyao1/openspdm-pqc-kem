@@ -57,13 +57,17 @@ spdm_session_info_init (
     spdm_context->connection_info.algorithm.aead_cipher_suite,
     spdm_context->connection_info.algorithm.key_schedule
     );
+  spdm_secured_message_set_pqc_algorithms (
+    session_info->secured_message_context,
+    spdm_context->connection_info.algorithm.pqc_kem_algo
+    );
   spdm_secured_message_set_psk_hint (
     session_info->secured_message_context,
     spdm_context->local_context.psk_hint,
     spdm_context->local_context.psk_hint_size
     );
-  session_info->session_transcript.message_k.max_buffer_size = MAX_SPDM_MESSAGE_BUFFER_SIZE;
-  session_info->session_transcript.message_f.max_buffer_size = MAX_SPDM_MESSAGE_BUFFER_SIZE;
+  session_info->session_transcript.message_k.max_buffer_size = MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE;
+  session_info->session_transcript.message_f.max_buffer_size = MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE;
 }
 
 /**

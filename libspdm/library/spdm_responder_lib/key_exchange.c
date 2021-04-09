@@ -55,6 +55,10 @@ spdm_get_response_key_exchange (
   return_status                 status;
   uintn                         opaque_key_exchange_rsp_size;
   uint8                         th1_hash_data[64];
+  void                          *pqc_kem_context;
+  uintn                         pqc_kem_public_key_size;
+  uintn                         pqc_kem_cipher_text_size;
+  boolean                       result2;
 
   spdm_context = context;
   spdm_request = request;
@@ -89,20 +93,26 @@ spdm_get_response_key_exchange (
     slot_id = spdm_context->local_context.provisioned_slot_id;
   }
 
-  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
+  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
+                   PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                   spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
   hmac_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
   dhe_key_size = spdm_get_dhe_pub_key_size (spdm_context->connection_info.algorithm.dhe_named_group);
   measurement_summary_hash_size = spdm_get_measurement_summary_hash_size (spdm_context, FALSE, spdm_request->header.param1);
+  pqc_kem_public_key_size = spdm_get_pqc_kem_public_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
+  pqc_kem_cipher_text_size = spdm_get_pqc_kem_cipher_text_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
 
   if (request_size < sizeof(spdm_key_exchange_request_t) +
                     dhe_key_size +
+                    pqc_kem_public_key_size +
                     sizeof(uint16)) {
     spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
     return RETURN_SUCCESS;
   }
-  opaque_data_length = *(uint16 *)((uint8 *)request + sizeof(spdm_key_exchange_request_t) + dhe_key_size);
+  opaque_data_length = *(uint16 *)((uint8 *)request + sizeof(spdm_key_exchange_request_t) + dhe_key_size + pqc_kem_public_key_size);
   if (request_size < sizeof(spdm_key_exchange_request_t) +
                     dhe_key_size +
+                    pqc_kem_public_key_size +
                     sizeof(uint16) +
                     opaque_data_length) {
     spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
@@ -110,10 +120,11 @@ spdm_get_response_key_exchange (
   }
   request_size = sizeof(spdm_key_exchange_request_t) +
                 dhe_key_size +
+                pqc_kem_public_key_size +
                 sizeof(uint16) +
                 opaque_data_length;
 
-  ptr = (uint8 *)request + sizeof(spdm_key_exchange_request_t) + dhe_key_size + sizeof(uint16);
+  ptr = (uint8 *)request + sizeof(spdm_key_exchange_request_t) + dhe_key_size + pqc_kem_public_key_size + sizeof(uint16);
   status = spdm_process_opaque_data_supported_version_data (spdm_context, opaque_data_length, ptr);
   if (RETURN_ERROR(status)) {
     spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
@@ -128,6 +139,7 @@ spdm_get_response_key_exchange (
 
   total_size = sizeof(spdm_key_exchange_response_t) +
               dhe_key_size +
+              pqc_kem_cipher_text_size +
               measurement_summary_hash_size +
               sizeof(uint16) +
               opaque_key_exchange_rsp_size +
@@ -198,6 +210,24 @@ spdm_get_response_key_exchange (
   }
 
   ptr += dhe_key_size;
+
+  pqc_kem_context = spdm_secured_message_pqc_kem_new (spdm_context->connection_info.algorithm.pqc_kem_algo);
+  result2 = spdm_secured_message_pqc_kem_encap (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context,
+                                                (uint8 *)request + sizeof(spdm_key_exchange_request_t) + dhe_key_size, pqc_kem_public_key_size,
+                                                ptr, &pqc_kem_cipher_text_size, session_info->secured_message_context);
+  DEBUG((DEBUG_INFO, "Calc SelfKey PQC (0x%x):\n", pqc_kem_cipher_text_size));
+  internal_dump_hex (ptr, pqc_kem_cipher_text_size);
+
+  DEBUG((DEBUG_INFO, "Calc peer_key PQC (0x%x):\n", pqc_kem_public_key_size));
+  internal_dump_hex ((uint8 *)request + sizeof(spdm_key_exchange_request_t) + dhe_key_size, pqc_kem_public_key_size);
+
+  spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
+  if (!result2) {
+    spdm_free_session_id (spdm_context, session_id);
+    spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
+    return RETURN_SUCCESS;
+  }
+  ptr += pqc_kem_cipher_text_size;
 
   result = spdm_generate_measurement_summary_hash (spdm_context, FALSE, spdm_request->header.param1, ptr);
   if (!result) {

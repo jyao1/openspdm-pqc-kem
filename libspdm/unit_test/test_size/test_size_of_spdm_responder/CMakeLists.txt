@@ -31,8 +31,11 @@ SET(test_size_of_spdm_responder_LIBRARY
     ${CRYPTO}lib
     rnglib
     cryptlib_${CRYPTO}
+    pqc_crypt_lib_oqs
+    oqs
     malloclib_null
     spdm_crypt_lib
+    spdm_pqc_crypt_lib
     spdm_secured_message_lib
     spdm_transport_mctp_lib
     spdm_device_secret_lib_null

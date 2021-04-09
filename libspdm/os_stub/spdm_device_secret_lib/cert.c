@@ -67,6 +67,9 @@ read_responder_root_public_certificate (
   case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P384:
     file = "ecp384/ca.cert.der";
     break;
+  case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P521:
+    file = "ecp521/ca.cert.der";
+    break;
   default:
     ASSERT( FALSE);
     return FALSE;
@@ -152,6 +155,9 @@ read_requester_root_public_certificate (
     break;
   case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P384:
     file = "ecp384/ca.cert.der";
+    break;
+  case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P521:
+    file = "ecp521/ca.cert.der";
     break;
   default:
     ASSERT( FALSE);
@@ -240,6 +246,9 @@ read_responder_public_certificate_chain (
     break;
   case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P384:
     file = "ecp384/bundle_responder.certchain.der";
+    break;
+  case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P521:
+    file = "ecp521/bundle_responder.certchain.der";
     break;
   default:
     ASSERT( FALSE);
@@ -345,6 +354,9 @@ read_requester_public_certificate_chain (
     break;
   case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P384:
     file = "ecp384/bundle_requester.certchain.der";
+    break;
+  case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P521:
+    file = "ecp521/bundle_requester.certchain.der";
     break;
   default:
     ASSERT( FALSE);
@@ -583,3 +595,285 @@ read_responder_public_certificate_chain_by_size (
   free (file_data);
   return TRUE;
 }
+
+//
+// PQC public key
+//
+boolean
+read_pqc_public_key (
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  char8                *algo_name;
+  char8                file_name[256];
+  boolean              result;
+
+  algo_name = spdm_get_pqc_sig_name (pqc_sig_algo);
+  ASSERT (algo_name != NULL);
+
+  strcpy (file_name, "pqc/");
+  strcat (file_name, algo_name);
+  strcat (file_name, "_pk.bin");
+
+  result = read_input_file (file_name, data, size);
+  if (!result) {
+    ASSERT (FALSE);
+  }
+
+  return result;
+}
+
+boolean
+read_responder_pqc_public_key (
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  return read_pqc_public_key (pqc_sig_algo, data, size);
+}
+
+boolean
+read_requester_pqc_public_key (
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  return read_pqc_public_key (pqc_sig_algo, data, size);
+}
+
+boolean
+read_hybrid_root_public_certificate (
+  IN  uint32  bash_hash_algo,
+  IN  uint32  base_asym_algo,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size,
+  OUT void    **hash,
+  OUT uintn   *hash_size
+  )
+{
+  boolean             res;
+  void                *file_data;
+  uintn               file_size;
+  spdm_cert_chain_t     *cert_chain;
+  uintn               cert_chain_size;
+  uintn               digest_size;
+  char8                *tradition_algo_name;
+  char8                *pqc_algo_name;
+  char8                file_name[256];
+
+  *data = NULL;
+  *size = 0;
+  if (hash != NULL) {
+    *hash = NULL;
+  }
+  if (hash_size != NULL) {
+    *hash_size = 0;
+  }
+
+  tradition_algo_name = get_hybrid_algo_tradition_name (base_asym_algo);
+  ASSERT (tradition_algo_name != NULL);
+  pqc_algo_name = get_hybrid_algo_pqc_name (pqc_sig_algo);
+  ASSERT (pqc_algo_name != NULL);
+
+  strcpy (file_name, tradition_algo_name);
+  strcat (file_name, pqc_algo_name);
+  strcat (file_name, "/ca.cert.der");
+
+  res = read_input_file (file_name, &file_data, &file_size);
+  if (!res) {
+    ASSERT (FALSE);
+    return res;
+  }
+
+  digest_size = spdm_get_hash_size (bash_hash_algo);
+
+  cert_chain_size = sizeof(spdm_cert_chain_t) + digest_size + file_size;
+  cert_chain = (void *)malloc (cert_chain_size);
+  if (cert_chain == NULL) {
+    free (file_data);
+    return FALSE;
+  }
+  cert_chain->length = (uint16)cert_chain_size;
+  cert_chain->reserved = 0;
+
+  spdm_hash_all (bash_hash_algo, file_data, file_size, (uint8 *)(cert_chain + 1));
+  copy_mem (
+    (uint8 *)cert_chain + sizeof(spdm_cert_chain_t) + digest_size,
+    file_data,
+    file_size
+    );
+
+  *data = cert_chain;
+  *size = cert_chain_size;
+  if (hash != NULL) {
+    *hash = (cert_chain + 1);
+  }
+  if (hash_size != NULL) {
+    *hash_size = digest_size;
+  }
+
+  free (file_data);
+  return TRUE;
+}
+
+boolean
+read_hybrid_responder_root_public_certificate (
+  IN  uint32  bash_hash_algo,
+  IN  uint32  base_asym_algo,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size,
+  OUT void    **hash,
+  OUT uintn   *hash_size
+  )
+{
+  return read_hybrid_root_public_certificate (bash_hash_algo, base_asym_algo, pqc_sig_algo, data, size, hash, hash_size);
+}
+
+boolean
+read_hybrid_requester_root_public_certificate (
+  IN  uint32  bash_hash_algo,
+  IN  uint16  req_base_asym_alg,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size,
+  OUT void    **hash,
+  OUT uintn   *hash_size
+  )
+{
+  return read_hybrid_root_public_certificate (bash_hash_algo, req_base_asym_alg, pqc_sig_algo, data, size, hash, hash_size);
+}
+
+boolean
+read_hybrid_public_certificate_chain (
+  IN  uint32  bash_hash_algo,
+  IN  uint32  base_asym_algo,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size,
+  OUT void    **hash,
+  OUT uintn   *hash_size,
+  IN  boolean is_requester
+  )
+{
+  boolean             res;
+  void                *file_data;
+  uintn               file_size;
+  spdm_cert_chain_t     *cert_chain;
+  uintn               cert_chain_size;
+  uint8               *root_cert;
+  uintn               root_cert_len;
+  uintn               digest_size;
+  char8                *tradition_algo_name;
+  char8                *pqc_algo_name;
+  char8                file_name[256];
+
+  *data = NULL;
+  *size = 0;
+  if (hash != NULL) {
+    *hash = NULL;
+  }
+  if (hash_size != NULL) {
+    *hash_size = 0;
+  }
+
+  tradition_algo_name = get_hybrid_algo_tradition_name (base_asym_algo);
+  ASSERT (tradition_algo_name != NULL);
+  pqc_algo_name = get_hybrid_algo_pqc_name (pqc_sig_algo);
+  ASSERT (pqc_algo_name != NULL);
+
+  strcpy (file_name, tradition_algo_name);
+  strcat (file_name, pqc_algo_name);
+  if (!is_requester) {
+    strcat (file_name, "/bundle_responder.certchain.der");
+  } else {
+    strcat (file_name, "/bundle_requester.certchain.der");
+  }
+
+  res = read_input_file (file_name, &file_data, &file_size);
+  if (!res) {
+    ASSERT (FALSE);
+    return res;
+  }
+
+  digest_size = spdm_get_hash_size (bash_hash_algo);
+
+  cert_chain_size = sizeof(spdm_cert_chain_t) + digest_size + file_size;
+  cert_chain = (void *)malloc (cert_chain_size);
+  if (cert_chain == NULL) {
+    free (file_data);
+    return FALSE;
+  }
+  cert_chain->length = (uint16)cert_chain_size;
+  cert_chain->reserved = 0;
+
+  res = spdm_verify_cert_chain_data(file_data, file_size);
+  if (!res) {
+    free (file_data);
+    free (cert_chain);
+    return res;
+  }
+
+  //
+  // Get Root Certificate and calculate hash value
+  //
+  res = x509_get_cert_from_cert_chain(file_data, file_size, 0, &root_cert, &root_cert_len);
+  if (!res) {
+    free (file_data);
+    free (cert_chain);
+    return res;
+  }
+
+  spdm_hash_all (bash_hash_algo, root_cert, root_cert_len, (uint8 *)(cert_chain + 1));
+  copy_mem (
+    (uint8 *)cert_chain + sizeof(spdm_cert_chain_t) + digest_size,
+    file_data,
+    file_size
+    );
+
+  *data = cert_chain;
+  *size = cert_chain_size;
+  if (hash != NULL) {
+    *hash = (cert_chain + 1);
+  }
+  if (hash_size != NULL) {
+    *hash_size = digest_size;
+  }
+
+  free (file_data);
+  return TRUE;
+}
+
+boolean
+read_hybrid_responder_public_certificate_chain (
+  IN  uint32  bash_hash_algo,
+  IN  uint32  base_asym_algo,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size,
+  OUT void    **hash,
+  OUT uintn   *hash_size
+  )
+{
+  return read_hybrid_public_certificate_chain (bash_hash_algo, base_asym_algo, pqc_sig_algo, data, size, hash, hash_size, FALSE);
+}
+
+boolean
+read_hybrid_requester_public_certificate_chain (
+  IN  uint32  bash_hash_algo,
+  IN  uint16  req_base_asym_alg,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size,
+  OUT void    **hash,
+  OUT uintn   *hash_size
+  )
+{
+  return read_hybrid_public_certificate_chain (bash_hash_algo, req_base_asym_alg, pqc_sig_algo, data, size, hash, hash_size, TRUE);
+}
+

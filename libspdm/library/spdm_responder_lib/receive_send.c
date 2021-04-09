@@ -12,6 +12,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 typedef struct {
   uint8                            request_response_code;
   spdm_get_spdm_response_func      get_response_func;
+  boolean                          need_fragment_response;
 } spdm_get_response_struct_t;
 
 spdm_get_response_struct_t  mSpdmGetResponseStruct[] = {
@@ -20,9 +21,9 @@ spdm_get_response_struct_t  mSpdmGetResponseStruct[] = {
   {SPDM_NEGOTIATE_ALGORITHMS,           spdm_get_response_algorithms},
   {SPDM_GET_DIGESTS,                    spdm_get_response_digests},
   {SPDM_GET_CERTIFICATE,                spdm_get_response_certificate},
-  {SPDM_CHALLENGE,                      spdm_get_response_challenge_auth},
-  {SPDM_GET_MEASUREMENTS,               spdm_get_response_measurements},
-  {SPDM_KEY_EXCHANGE,                   spdm_get_response_key_exchange},
+  {SPDM_CHALLENGE,                      spdm_get_response_challenge_auth, TRUE},
+  {SPDM_GET_MEASUREMENTS,               spdm_get_response_measurements, TRUE},
+  {SPDM_KEY_EXCHANGE,                   spdm_get_response_key_exchange, TRUE},
   {SPDM_PSK_EXCHANGE,                   spdm_get_response_psk_exchange},
   {SPDM_GET_ENCAPSULATED_REQUEST,       spdm_get_response_encapsulated_request},
   {SPDM_DELIVER_ENCAPSULATED_RESPONSE,  spdm_get_response_encapsulated_response_ack},
@@ -33,6 +34,9 @@ spdm_get_response_struct_t  mSpdmGetResponseStruct[] = {
   {SPDM_END_SESSION,                    spdm_get_response_end_session},
   {SPDM_HEARTBEAT,                      spdm_get_response_heartbeat},
   {SPDM_KEY_UPDATE,                     spdm_get_response_key_update},
+
+  {SPDM_FRAGMENT_REQUEST,               spdm_get_response_fragment_request},
+  {SPDM_FRAGMENT_RSP_REQUEST,           spdm_get_response_fragment_rsp_request},
 };
 
 /**
@@ -56,6 +60,29 @@ spdm_get_response_func_via_request_code (
     }
   }
   return NULL;
+}
+
+/**
+  Return need_fragment_response.
+
+  @param  request_code                  The SPDM request code.
+
+  @return need_fragment_response.
+**/
+boolean
+spdm_need_fragment_response (
+  IN     uint8                    request_code
+  )
+{
+  uintn                index;
+
+  ASSERT(request_code != SPDM_RESPOND_IF_READY);
+  for (index = 0; index < sizeof(mSpdmGetResponseStruct)/sizeof(mSpdmGetResponseStruct[0]); index++) {
+    if (request_code == mSpdmGetResponseStruct[index].request_response_code) {
+      return mSpdmGetResponseStruct[index].need_fragment_response;
+    }
+  }
+  return FALSE;
 }
 
 /**
@@ -280,6 +307,7 @@ spdm_build_response (
   spdm_session_info_t                 *session_info;
   spdm_message_header_t               *spdm_request;
   spdm_message_header_t               *spdm_response;
+  boolean                             need_fragment_response;
 
   spdm_context = context;
 
@@ -348,7 +376,17 @@ spdm_build_response (
   if (!is_app_message) {
     get_response_func = spdm_get_response_func_via_last_request (spdm_context);
     if (get_response_func != NULL) {
-      status = get_response_func (spdm_context, spdm_context->last_spdm_request_size, spdm_context->last_spdm_request, &my_response_size, my_response);
+      need_fragment_response = spdm_need_fragment_response(spdm_request->request_response_code);
+      if (need_fragment_response) {
+        spdm_context->last_spdm_fragment_encapsulated_response_size = sizeof(spdm_context->last_spdm_fragment_encapsulated_response);
+        spdm_context->last_spdm_fragment_encapsulated_response_sent_size = 0;
+        status = get_response_func (spdm_context, spdm_context->last_spdm_request_size, spdm_context->last_spdm_request, &spdm_context->last_spdm_fragment_encapsulated_response_size, spdm_context->last_spdm_fragment_encapsulated_response);
+        if (status == RETURN_SUCCESS) {
+          status = spdm_build_fragment_response (spdm_context, &my_response_size, my_response);
+        }
+      } else {
+        status = get_response_func (spdm_context, spdm_context->last_spdm_request_size, spdm_context->last_spdm_request, &my_response_size, my_response);
+      }
     }
   }
   if (is_app_message || (get_response_func == NULL)) {

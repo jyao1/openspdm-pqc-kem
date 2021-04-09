@@ -21,6 +21,8 @@ void    *m_responder_cert_chain_buffer;
 uintn   m_responder_cert_chain_buffer_size;
 void    *m_dhe_secret_buffer;
 uintn   m_dhe_secret_buffer_size;
+void    *m_pqc_secret_buffer;
+uintn   m_pqc_secret_buffer_size;
 void    *m_psk_buffer;
 uintn   m_psk_buffer_size;
 
@@ -66,6 +68,11 @@ spdm_dump_session_data_provision (
       return RETURN_UNSUPPORTED;
     }
     spdm_secured_message_import_dhe_secret (secured_message_context, m_dhe_secret_buffer, m_dhe_secret_buffer_size);
+
+    if (m_pqc_secret_buffer == NULL || m_pqc_secret_buffer_size == 0) {
+      return RETURN_UNSUPPORTED;
+    }
+    spdm_secured_message_import_pqc_shared_secret (secured_message_context, m_pqc_secret_buffer, m_pqc_secret_buffer_size);
 
     if (is_requester) {
       if (need_mut_auth && mut_auth_requested) {

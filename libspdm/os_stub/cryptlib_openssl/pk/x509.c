@@ -1817,6 +1817,84 @@ done:
   return res;
 }
 
+boolean
+is_pqc_hybrid_pkey_type (
+  IN int pkey_type
+  );
+
+/**
+  Retrieve the QPC public key from one DER-encoded X509 certificate.
+
+  @param[in]  cert         Pointer to the DER-encoded X509 certificate.
+  @param[in]  cert_size     size of the X509 certificate in bytes.
+  @param[out] pqc_hybrid_context   Pointer to new-generated QPC context which contain the retrieved
+                           QPC public key component. Use pqc_hybrid__free() function to free the
+                           resource.
+
+  If cert is NULL, then return FALSE.
+  If pqc_hybrid_context is NULL, then return FALSE.
+
+  @retval  TRUE   QPC public key was retrieved successfully.
+  @retval  FALSE  Fail to retrieve QPC public key from X509 certificate.
+
+**/
+boolean
+pqc_hybrid_get_public_key_from_x509 (
+  IN   const uint8  *cert,
+  IN   uintn        cert_size,
+  OUT  void         **pqc_hybrid_context
+  )
+{
+  boolean   res;
+  EVP_PKEY  *pkey;
+  X509      *x509_cert;
+
+  //
+  // Check input parameters.
+  //
+  if (cert == NULL || pqc_hybrid_context == NULL) {
+    return FALSE;
+  }
+
+  pkey     = NULL;
+  x509_cert = NULL;
+
+  //
+  // Read DER-encoded X509 Certificate and Construct X509 object.
+  //
+  res = x509_construct_certificate (cert, cert_size, (uint8 **) &x509_cert);
+  if ((x509_cert == NULL) || (!res)) {
+    res = FALSE;
+    goto done;
+  }
+
+  res = FALSE;
+
+  //
+  // Retrieve and check EVP_PKEY data from X509 Certificate.
+  //
+  pkey = X509_get_pubkey (x509_cert);
+  if (pkey == NULL) {
+    goto done;
+  }
+  if (!is_pqc_hybrid_pkey_type (EVP_PKEY_id (pkey))) {
+    goto done;
+  }
+
+  *pqc_hybrid_context = pkey;
+  res = TRUE;
+
+done:
+  //
+  // Release Resources.
+  //
+  if (x509_cert != NULL) {
+    X509_free (x509_cert);
+  }
+
+  return res;
+}
+
 /**
   Verify one X509 certificate was issued by the trusted CA.
 

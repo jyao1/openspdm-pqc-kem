@@ -149,6 +149,25 @@ spdm_secured_message_set_algorithms (
 }
 
 /**
+  Set PQC algorithm to an SPDM secured message context.
+
+  @param  spdm_secured_message_context    A pointer to the SPDM secured message context.
+  @param  pqc_kem_algo                    Indicate the negotiated pqc_kem_algo for the SPDM session.
+*/
+void
+spdm_secured_message_set_pqc_algorithms (
+  IN void                         *spdm_secured_message_context,
+  IN pqc_algo_t                   pqc_kem_algo
+  )
+{
+  spdm_secured_message_context_t           *secured_message_context;
+
+  secured_message_context = spdm_secured_message_context;
+  copy_mem (secured_message_context->pqc_kem_algo, pqc_kem_algo, sizeof(pqc_algo_t));
+  secured_message_context->pqc_shared_secret_size = spdm_get_pqc_kem_shared_key_size (secured_message_context->pqc_kem_algo);
+}
+
+/**
   Set the psk_hint to an SPDM secured message context.
 
   @param  spdm_secured_message_context    A pointer to the SPDM secured message context.
@@ -192,7 +211,34 @@ spdm_secured_message_import_dhe_secret (
     return RETURN_OUT_OF_RESOURCES;
   }
   secured_message_context->dhe_key_size = dhe_secret_size;
-  copy_mem (secured_message_context->master_secret.dhe_secret, dhe_secret, dhe_secret_size);
+  copy_mem (secured_message_context->master_secret.shared_secret, dhe_secret, dhe_secret_size);
+  return RETURN_SUCCESS;
+}
+
+/**
+  Import the PQC Secret to an SPDM secured message context.
+
+  @param  spdm_secured_message_context    A pointer to the SPDM secured message context.
+  @param  pqc_secret                    Indicate the DHE secret.
+  @param  pqc_secret_size                The size in bytes of the DHE secret.
+
+  @retval RETURN_SUCCESS  DHE Secret is imported.
+*/
+return_status
+spdm_secured_message_import_pqc_shared_secret (
+  IN void                         *spdm_secured_message_context,
+  IN void                         *pqc_shared_secret,
+  IN uintn                        pqc_shared_secret_size
+  )
+{
+  spdm_secured_message_context_t           *secured_message_context;
+
+  secured_message_context = spdm_secured_message_context;
+  if (pqc_shared_secret_size > secured_message_context->pqc_shared_secret_size) {
+    return RETURN_OUT_OF_RESOURCES;
+  }
+  secured_message_context->pqc_shared_secret_size = pqc_shared_secret_size;
+  copy_mem (secured_message_context->master_secret.shared_secret + secured_message_context->dhe_key_size, pqc_shared_secret, pqc_shared_secret_size);
   return RETURN_SUCCESS;
 }
 

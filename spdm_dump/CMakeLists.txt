@@ -15,6 +15,7 @@ SET(CMAKE_BUILD_TYPE ${TARGET} CACHE STRING "Choose the target of build: Debug R
 SET(CRYPTO ${CRYPTO} CACHE STRING "Choose the crypto of build: mbedtls openssl" FORCE)
 
 SET(LIBSPDM_DIR ${PROJECT_SOURCE_DIR}/../libspdm)
+SET(LIBOQS_DIR ${PROJECT_SOURCE_DIR}/../oqs)
 
 if(ARCH STREQUAL "x64")
     MESSAGE("ARCH = x64")
@@ -380,8 +381,15 @@ elseif(TOOLCHAIN STREQUAL "VS2019")
     endif()
 endif()
 
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${LIBOQS_DIR}/lib")
+
+elseif(CMAKE_SYSTEM_NAME MATCHES "Windows")
 if(OPENSSL_PATH)
     SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LIBPATH:${OPENSSL_PATH}") 
+endif()
+
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /LIBPATH:${LIBOQS_DIR}/lib") 
 endif()
 
 SET(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
@@ -411,10 +419,12 @@ elseif(CRYPTO STREQUAL "openssl")
         ADD_SUBDIRECTORY(${LIBSPDM_DIR}/os_stub/openssllib out/openssllib.out)
     endif()
 endif()
+    ADD_SUBDIRECTORY(${LIBSPDM_DIR}/os_stub/pqc_crypt_lib_oqs out/pqc_crypt_lib_oqs.out)
     ADD_SUBDIRECTORY(${LIBSPDM_DIR}/library/spdm_common_lib out/spdm_common_lib.out)
     ADD_SUBDIRECTORY(${LIBSPDM_DIR}/library/spdm_requester_lib out/spdm_requester_lib.out)
     ADD_SUBDIRECTORY(${LIBSPDM_DIR}/library/spdm_responder_lib out/spdm_responder_lib.out)
     ADD_SUBDIRECTORY(${LIBSPDM_DIR}/library/spdm_crypt_lib out/spdm_crypt_lib.out)
+    ADD_SUBDIRECTORY(${LIBSPDM_DIR}/library/spdm_pqc_crypt_lib out/spdm_pqc_crypt_lib.out)
     ADD_SUBDIRECTORY(${LIBSPDM_DIR}/library/spdm_transport_mctp_lib out/spdm_transport_mctp_lib.out)
     ADD_SUBDIRECTORY(${LIBSPDM_DIR}/library/spdm_transport_pcidoe_lib out/spdm_transport_pcidoe_lib.out)
     ADD_SUBDIRECTORY(${LIBSPDM_DIR}/library/spdm_secured_message_lib out/spdm_secured_message_lib.out)

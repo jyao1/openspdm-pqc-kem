@@ -21,7 +21,8 @@ typedef struct {
   uint8                ext_asym_count;
   uint8                ext_hash_count;
   uint16               reserved3;
-  spdm_negotiate_algorithms_common_struct_table_t struct_table[4];
+  spdm_negotiate_algorithms_common_struct_table_t  struct_table[4];
+  spdm_negotiate_algorithms_pqc_struct_table_t     pqc_struct_table[3];
 } spdm_negotiate_algorithms_request_mine_t;
 
 typedef struct {
@@ -39,6 +40,7 @@ typedef struct {
   uint32               ext_asym_sel[8];
   uint32               ext_hash_sel[8];
   spdm_negotiate_algorithms_common_struct_table_t  struct_table[4];
+  spdm_negotiate_algorithms_pqc_struct_table_t     pqc_struct_table[3];
 } spdm_algorithms_response_max_t;
 #pragma pack()
 
@@ -61,7 +63,7 @@ try_spdm_negotiate_algorithms (
   uintn                                          spdm_response_size;
   uint32                                         algo_size;
   uintn                                          index;
-  spdm_negotiate_algorithms_common_struct_table_t  *struct_table;
+  spdm_negotiate_algorithms_struct_table_t  *struct_table;
   uint8                                          fixed_alg_size;
   uint8                                          ext_alg_count;
 
@@ -73,10 +75,10 @@ try_spdm_negotiate_algorithms (
   if (spdm_is_version_supported (spdm_context, SPDM_MESSAGE_VERSION_11)) {
     spdm_request.header.spdm_version = SPDM_MESSAGE_VERSION_11;
     spdm_request.length = sizeof(spdm_request);
-    spdm_request.header.param1 = 4; // Number of Algorithms Structure Tables
+    spdm_request.header.param1 = 4 + 3; // Number of Algorithms Structure Tables
   } else {
     spdm_request.header.spdm_version = SPDM_MESSAGE_VERSION_10;
-    spdm_request.length = sizeof(spdm_request) - sizeof(spdm_request.struct_table);
+    spdm_request.length = sizeof(spdm_request) - sizeof(spdm_request.struct_table) - sizeof(spdm_request.pqc_struct_table);
     spdm_request.header.param1 = 0;
   }
   spdm_request.header.request_response_code = SPDM_NEGOTIATE_ALGORITHMS;
@@ -98,6 +100,15 @@ try_spdm_negotiate_algorithms (
   spdm_request.struct_table[3].alg_type = SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_KEY_SCHEDULE;
   spdm_request.struct_table[3].alg_count = 0x20;
   spdm_request.struct_table[3].alg_supported = spdm_context->local_context.algorithm.key_schedule;
+  spdm_request.pqc_struct_table[0].alg_type = SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_DIGITAL_SIGNATURE_ALGO;
+  spdm_request.pqc_struct_table[0].alg_count = (uint8)(sizeof(pqc_algo_t) << 4);
+  copy_mem (spdm_request.pqc_struct_table[0].alg_supported, spdm_context->local_context.algorithm.pqc_sig_algo, sizeof(pqc_algo_t));
+  spdm_request.pqc_struct_table[1].alg_type = SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_REQ_DIGITAL_SIGNATURE_ALGO;
+  spdm_request.pqc_struct_table[1].alg_count = (uint8)(sizeof(pqc_algo_t) << 4);
+  copy_mem (spdm_request.pqc_struct_table[1].alg_supported, spdm_context->local_context.algorithm.pqc_req_sig_algo, sizeof(pqc_algo_t));
+  spdm_request.pqc_struct_table[2].alg_type = SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEY_ESTABLISHMENT_ALGO;
+  spdm_request.pqc_struct_table[2].alg_count = (uint8)(sizeof(pqc_algo_t) << 4);
+  copy_mem (spdm_request.pqc_struct_table[2].alg_supported, spdm_context->local_context.algorithm.pqc_kem_algo, sizeof(pqc_algo_t));
   status = spdm_send_spdm_request (spdm_context, NULL, spdm_request.length, &spdm_request);
   if (RETURN_ERROR(status)) {
     return RETURN_DEVICE_ERROR;
@@ -144,7 +155,7 @@ try_spdm_negotiate_algorithms (
   if (spdm_response_size < sizeof(spdm_algorithms_response_t) + 
                          sizeof(uint32) * spdm_response.ext_asym_sel_count +
                          sizeof(uint32) * spdm_response.ext_hash_sel_count +
-                         sizeof(spdm_negotiate_algorithms_common_struct_table_t) * spdm_response.header.param1) {
+                         sizeof(spdm_negotiate_algorithms_struct_table_t) * spdm_response.header.param1) {
     return RETURN_DEVICE_ERROR;
   }
   struct_table = (void *)((uintn)&spdm_response +
@@ -157,21 +168,40 @@ try_spdm_negotiate_algorithms (
       if ((uintn)&spdm_response + spdm_response_size < (uintn)struct_table) {
         return RETURN_DEVICE_ERROR;
       }
-      if ((uintn)&spdm_response + spdm_response_size - (uintn)struct_table < sizeof(spdm_negotiate_algorithms_common_struct_table_t)) {
-        return RETURN_DEVICE_ERROR;
-      }
       fixed_alg_size = (struct_table->alg_count >> 4) & 0xF;
       ext_alg_count = struct_table->alg_count & 0xF;
-      if (fixed_alg_size != 2) {
+      if ((uintn)&spdm_response + spdm_response_size - (uintn)struct_table < sizeof(spdm_negotiate_algorithms_struct_table_t) + fixed_alg_size) {
+        return RETURN_DEVICE_ERROR;
+      }
+      if (fixed_alg_size == 2) {
+        switch (struct_table->alg_type) {
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_DHE:
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_AEAD:
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_REQ_BASE_ASYM_ALG:
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_KEY_SCHEDULE:
+          break;
+        default:
+          return RETURN_DEVICE_ERROR;
+        }
+      } else if (fixed_alg_size == sizeof(pqc_algo_t)) {
+        switch (struct_table->alg_type) {
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_DIGITAL_SIGNATURE_ALGO:
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_REQ_DIGITAL_SIGNATURE_ALGO:
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEY_ESTABLISHMENT_ALGO:
+          break;
+        default:
+          return RETURN_DEVICE_ERROR;
+        }
+      } else {
         return RETURN_DEVICE_ERROR;
       }
       if (ext_alg_count > 1) {
         return RETURN_DEVICE_ERROR;
       }
-      if ((uintn)&spdm_response + spdm_response_size - (uintn)struct_table - sizeof(spdm_negotiate_algorithms_common_struct_table_t) < sizeof(uint32) * ext_alg_count) {
+      if ((uintn)&spdm_response + spdm_response_size - (uintn)struct_table - sizeof(spdm_negotiate_algorithms_struct_table_t) - fixed_alg_size < sizeof(uint32) * ext_alg_count) {
         return RETURN_DEVICE_ERROR;
       }
-      struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_common_struct_table_t) + sizeof(uint32) * ext_alg_count);
+      struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_struct_table_t) + fixed_alg_size + sizeof(uint32) * ext_alg_count);
     }
   }
   spdm_response_size = (uintn)struct_table - (uintn)&spdm_response;
@@ -221,24 +251,56 @@ try_spdm_negotiate_algorithms (
     for (index = 0; index < spdm_response.header.param1; index++) {
       switch (struct_table->alg_type) {
       case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_DHE:
-        spdm_context->connection_info.algorithm.dhe_named_group = struct_table->alg_supported;
+        spdm_context->connection_info.algorithm.dhe_named_group = *(uint16 *)(struct_table + 1);
         break;
       case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_AEAD:
-        spdm_context->connection_info.algorithm.aead_cipher_suite = struct_table->alg_supported;
+        spdm_context->connection_info.algorithm.aead_cipher_suite = *(uint16 *)(struct_table + 1);
         break;
       case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_REQ_BASE_ASYM_ALG:
-        spdm_context->connection_info.algorithm.req_base_asym_alg = struct_table->alg_supported;
+        spdm_context->connection_info.algorithm.req_base_asym_alg = *(uint16 *)(struct_table + 1);
         break;
       case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_KEY_SCHEDULE:
-        spdm_context->connection_info.algorithm.key_schedule = struct_table->alg_supported;
+        spdm_context->connection_info.algorithm.key_schedule = *(uint16 *)(struct_table + 1);
+        break;
+      case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_DIGITAL_SIGNATURE_ALGO:
+        copy_mem (spdm_context->connection_info.algorithm.pqc_sig_algo, struct_table + 1, sizeof(pqc_algo_t));
+        break;
+      case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_REQ_DIGITAL_SIGNATURE_ALGO:
+        copy_mem (spdm_context->connection_info.algorithm.pqc_req_sig_algo, struct_table + 1, sizeof(pqc_algo_t));
+        break;
+      case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEY_ESTABLISHMENT_ALGO:
+        copy_mem (spdm_context->connection_info.algorithm.pqc_kem_algo, struct_table + 1, sizeof(pqc_algo_t));
         break;
       }
+      fixed_alg_size = (struct_table->alg_count >> 4) & 0xF;
       ext_alg_count = struct_table->alg_count & 0xF;
-      struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_common_struct_table_t) + sizeof(uint32) * ext_alg_count);
+      struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_struct_table_t) + fixed_alg_size + sizeof(uint32) * ext_alg_count);
     }
 
+    if (spdm_is_capabilities_flag_supported(spdm_context, TRUE, 0, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_CHAL_CAP)) {
+      algo_size = spdm_get_pqc_sig_public_key_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
+      if (algo_size == 0) {
+        return RETURN_SECURITY_VIOLATION;
+      }
+      algo_size = spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
+      if (algo_size == 0) {
+        return RETURN_SECURITY_VIOLATION;
+      }
+    }
     if (spdm_is_capabilities_flag_supported(spdm_context, TRUE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_KEY_EX_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_KEY_EX_CAP)) {
       algo_size = spdm_get_dhe_pub_key_size (spdm_context->connection_info.algorithm.dhe_named_group);
+      if (algo_size == 0) {
+        return RETURN_SECURITY_VIOLATION;
+      }
+      algo_size = spdm_get_pqc_kem_public_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
+      if (algo_size == 0) {
+        return RETURN_SECURITY_VIOLATION;
+      }
+      algo_size = spdm_get_pqc_kem_shared_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
+      if (algo_size == 0) {
+        return RETURN_SECURITY_VIOLATION;
+      }
+      algo_size = spdm_get_pqc_kem_cipher_text_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
       if (algo_size == 0) {
         return RETURN_SECURITY_VIOLATION;
       }
@@ -255,6 +317,14 @@ try_spdm_negotiate_algorithms (
       if (algo_size == 0) {
         return RETURN_SECURITY_VIOLATION;
       }
+      algo_size = spdm_get_pqc_req_sig_public_key_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
+      if (algo_size == 0) {
+        return RETURN_SECURITY_VIOLATION;
+      }
+      algo_size = spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
+      if (algo_size == 0) {
+        return RETURN_SECURITY_VIOLATION;
+      }
     }
     if (spdm_is_capabilities_flag_supported(spdm_context, TRUE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_KEY_EX_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_KEY_EX_CAP) ||
         spdm_is_capabilities_flag_supported(spdm_context, TRUE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_PSK_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_PSK_CAP)) {
@@ -267,7 +337,17 @@ try_spdm_negotiate_algorithms (
     spdm_context->connection_info.algorithm.aead_cipher_suite = 0;
     spdm_context->connection_info.algorithm.req_base_asym_alg = 0;
     spdm_context->connection_info.algorithm.key_schedule = 0;
+    zero_mem (spdm_context->connection_info.algorithm.pqc_sig_algo, sizeof(pqc_algo_t));
+    zero_mem (spdm_context->connection_info.algorithm.pqc_req_sig_algo, sizeof(pqc_algo_t));
+    zero_mem (spdm_context->connection_info.algorithm.pqc_kem_algo, sizeof(pqc_algo_t));
   }
+  ASSERT (spdm_get_pqc_kem_public_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo) <= MAX_PQC_KEM_PUBLIC_KEY_SIZE);
+  ASSERT (spdm_get_pqc_kem_shared_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo) <= MAX_PQC_KEM_SHARED_KEY_SIZE);
+  ASSERT (spdm_get_pqc_kem_cipher_text_size (spdm_context->connection_info.algorithm.pqc_kem_algo) <= MAX_PQC_KEM_CIPHER_TEXT_SIZE);
+  ASSERT (spdm_get_pqc_sig_public_key_size (spdm_context->connection_info.algorithm.pqc_sig_algo) <= MAX_PQC_SIG_PUBLIC_KEY_SIZE);
+  ASSERT (spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo) <= MAX_PQC_SIG_SIGNATURE_SIZE);
+  ASSERT (spdm_get_pqc_req_sig_public_key_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo) <= MAX_PQC_SIG_PUBLIC_KEY_SIZE);
+  ASSERT (spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo) <= MAX_PQC_SIG_SIGNATURE_SIZE);
 
   spdm_context->connection_info.connection_state = SPDM_CONNECTION_STATE_NEGOTIATED;
   return RETURN_SUCCESS;

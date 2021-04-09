@@ -379,4 +379,50 @@ spdm_receive_spdm_response (
      OUT void                 *response
   );
 
+/**
+  Send an SPDM FRAGMENT request to a device.
+
+  @param  spdm_context                  The SPDM context for the device.
+  @param  session_id                    Indicate if the request is a secured message.
+                                       If session_id is NULL, it is a normal message.
+                                       If session_id is NOT NULL, it is a secured message.
+  @param  request_size                  size in bytes of the request data buffer.
+  @param  request                      A pointer to a destination buffer to store the request.
+                                       The caller is responsible for having
+                                       either implicit or explicit ownership of the buffer.
+
+  @retval RETURN_SUCCESS               The SPDM request is sent successfully.
+  @retval RETURN_DEVICE_ERROR          A device error occurs when the SPDM request is sent to the device.
+**/
+return_status
+spdm_send_spdm_fragment_encap_request (
+  IN     spdm_context_t  *spdm_context,
+  IN     uint32               *session_id,
+  IN     uintn                request_size,
+  IN     void                 *request
+  );
+
+/**
+  Receive an SPDM FRAGMENT response from a device.
+
+  @param  spdm_context                  The SPDM context for the device.
+  @param  session_id                    Indicate if the response is a secured message.
+                                       If session_id is NULL, it is a normal message.
+                                       If session_id is NOT NULL, it is a secured message.
+  @param  response_size                 size in bytes of the response data buffer.
+  @param  response                     A pointer to a destination buffer to store the response.
+                                       The caller is responsible for having
+                                       either implicit or explicit ownership of the buffer.
+
+  @retval RETURN_SUCCESS               The SPDM response is received successfully.
+  @retval RETURN_DEVICE_ERROR          A device error occurs when the SPDM response is received from the device.
+**/
+return_status
+spdm_receive_spdm_fragment_encap_response (
+  IN     spdm_context_t  *spdm_context,
+  IN     uint32               *session_id,
+  IN OUT uintn                *response_size,
+     OUT void                 *response
+  );
+
 #endif

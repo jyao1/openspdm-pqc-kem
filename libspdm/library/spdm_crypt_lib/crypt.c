@@ -1828,6 +1828,7 @@ spdm_x509_certificate_check (
   uintn         value;
   void          *rsa_context;
   void          *ec_context;
+  void          *pqc_hybrid_context;
 
   if (cert == NULL || cert_size == 0) {
     return FALSE;
@@ -1836,6 +1837,7 @@ spdm_x509_certificate_check (
   status = TRUE;
   rsa_context = NULL;
   ec_context = NULL;
+  pqc_hybrid_context = NULL;
   end_cert_from_len = 64;
   end_cert_to_len = 64;
 
@@ -1904,6 +1906,9 @@ spdm_x509_certificate_check (
   status = rsa_get_public_key_from_x509(cert, cert_size, &rsa_context);
   if (!status) {
     status = ec_get_public_key_from_x509(cert, cert_size, &ec_context);
+    if (!status) {
+      status = pqc_hybrid_get_public_key_from_x509(cert, cert_size, &pqc_hybrid_context);
+    }
   }
   if (!status) {
     goto cleanup;
@@ -1933,6 +1938,9 @@ cleanup:
   }
   if (ec_context != NULL) {
     ec_free(ec_context);
+  }
+  if (pqc_hybrid_context != NULL) {
+    pqc_hybrid_free (pqc_hybrid_context);
   }
   return status;
 }
@@ -2120,7 +2128,7 @@ spdm_verify_cert_chain_data (
   uint8                                     *leaf_cert_buffer;
   uintn                                     leaf_cert_buffer_size;
 
-  if (cert_chain_data_size > MAX_UINT16 - (sizeof(spdm_cert_chain_t) + MAX_HASH_SIZE)) {
+  if (cert_chain_data_size > MAX_UINT32 - (sizeof(spdm_cert_chain_t) + MAX_HASH_SIZE)) {
     DEBUG((DEBUG_INFO, "!!! VerifyCertificateChainData - FAIL (chain size too large) !!!\n"));
     return FALSE;
   }
@@ -2176,7 +2184,7 @@ spdm_verify_certificate_chain_buffer (
 
   hash_size = spdm_get_hash_size (bash_hash_algo);
 
-  if (cert_chain_buffer_size > MAX_SPDM_MESSAGE_BUFFER_SIZE) {
+  if (cert_chain_buffer_size > MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE) {
     DEBUG((DEBUG_INFO, "!!! VerifyCertificateChainBuffer - FAIL (buffer too large) !!!\n"));
     return FALSE;
   }

@@ -13,7 +13,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 typedef struct {
   spdm_message_header_t  header;
-  uint8                signature[MAX_ASYM_KEY_SIZE];
+  uint8                signature[MAX_ASYM_KEY_SIZE + PQC_SIG_SIGNATURE_LENGTH_SIZE + MAX_PQC_SIG_SIGNATURE_SIZE];
   uint8                verify_data[MAX_HASH_SIZE];
 } spdm_finish_request_mine_t;
 
@@ -88,7 +88,9 @@ try_spdm_send_receive_finish (
   if (session_info->mut_auth_requested) {
     spdm_request.header.param1 = SPDM_FINISH_REQUEST_ATTRIBUTES_SIGNATURE_INCLUDED;
     spdm_request.header.param2 = req_slot_id_param;
-    signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg);
+    signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg) +
+                     PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                     spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
   } else {
     spdm_request.header.param1 = 0;
     spdm_request.header.param2 = 0;
@@ -134,7 +136,7 @@ try_spdm_send_receive_finish (
     return RETURN_SECURITY_VIOLATION;
   }
 
-  status = spdm_send_spdm_request (spdm_context, &session_id, spdm_request_size, &spdm_request);
+  status = spdm_send_spdm_fragment_encap_request (spdm_context, &session_id, spdm_request_size, &spdm_request);
   if (RETURN_ERROR(status)) {
     return RETURN_DEVICE_ERROR;
   }

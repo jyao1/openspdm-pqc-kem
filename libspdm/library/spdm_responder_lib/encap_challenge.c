@@ -143,7 +143,9 @@ spdm_process_encap_response_challenge_auth (
     }
   }
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
-  signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg);
+  signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg) +
+                   PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                   spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
   measurement_summary_hash_size = 0;
 
   if (spdm_response_size <= sizeof(spdm_challenge_auth_response_t) +

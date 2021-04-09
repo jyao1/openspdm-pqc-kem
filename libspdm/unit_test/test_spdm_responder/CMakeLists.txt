@@ -40,10 +40,13 @@ SET(test_spdm_responder_LIBRARY
     spdm_responder_lib
     spdm_common_lib
     ${CRYPTO}lib
+    pqc_crypt_lib_oqs
+    oqs
     rnglib
     cryptlib_${CRYPTO}
     malloclib
     spdm_crypt_lib
+    spdm_pqc_crypt_lib
     spdm_secured_message_lib
     spdm_device_secret_lib
     spdm_transport_test_lib

@@ -18,7 +18,7 @@ typedef struct {
   uint8                nonce[SPDM_NONCE_SIZE];
   uint16               opaque_length;
   uint8                opaque_data[MAX_SPDM_OPAQUE_DATA_SIZE];
-  uint8                signature[MAX_ASYM_KEY_SIZE];
+  uint8                signature[MAX_ASYM_KEY_SIZE + PQC_SIG_SIGNATURE_LENGTH_SIZE + MAX_PQC_SIG_SIGNATURE_SIZE];
 } spdm_measurements_response_max_t;
 #pragma pack()
 
@@ -115,7 +115,9 @@ try_spdm_get_measurement (
   }
 
   if (request_attribute == SPDM_GET_MEASUREMENTS_REQUEST_ATTRIBUTES_GENERATE_SIGNATURE) {
-    signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
+    signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
+                     PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                     spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
   } else {
     signature_size = 0;
   }
@@ -158,7 +160,7 @@ try_spdm_get_measurement (
 
   spdm_response_size = sizeof(spdm_response);
   zero_mem (&spdm_response, sizeof(spdm_response));
-  status = spdm_receive_spdm_response (spdm_context, session_id, &spdm_response_size, &spdm_response);
+  status = spdm_receive_spdm_fragment_encap_response (spdm_context, session_id, &spdm_response_size, &spdm_response);
   if (RETURN_ERROR(status)) {
     return RETURN_DEVICE_ERROR;
   }

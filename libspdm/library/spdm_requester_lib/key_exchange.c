@@ -16,7 +16,7 @@ typedef struct {
   uint16               req_session_id;
   uint16               reserved;
   uint8                random_data[SPDM_RANDOM_DATA_SIZE];
-  uint8                exchange_data[MAX_DHE_KEY_SIZE];
+  uint8                exchange_data[MAX_DHE_KEY_SIZE + MAX_PQC_KEM_PUBLIC_KEY_SIZE];
   uint16               opaque_length;
   uint8                opaque_data[MAX_SPDM_OPAQUE_DATA_SIZE];
 } spdm_key_exchange_request_mine_t;
@@ -27,11 +27,11 @@ typedef struct {
   uint8                mut_auth_requested;
   uint8                req_slot_id_param;
   uint8                random_data[SPDM_RANDOM_DATA_SIZE];
-  uint8                exchange_data[MAX_DHE_KEY_SIZE];
+  uint8                exchange_data[MAX_DHE_KEY_SIZE + MAX_PQC_KEM_CIPHER_TEXT_SIZE];
   uint8                measurement_summary_hash[MAX_HASH_SIZE];
   uint16               opaque_length;
   uint8                opaque_data[MAX_SPDM_OPAQUE_DATA_SIZE];
-  uint8                signature[MAX_ASYM_KEY_SIZE];
+  uint8                signature[MAX_ASYM_KEY_SIZE + PQC_SIG_SIGNATURE_LENGTH_SIZE + MAX_PQC_SIG_SIGNATURE_SIZE];
   uint8                verify_data[MAX_HASH_SIZE];
 } spdm_key_exchange_response_max_t;
 
@@ -83,6 +83,10 @@ try_spdm_send_receive_key_exchange (
   spdm_session_info_t                         *session_info;
   uintn                                     opaque_key_exchange_req_size;
   uint8                                     th1_hash_data[64];
+  void                                      *pqc_kem_context;
+  uintn                                     pqc_kem_public_key_size;
+  uintn                                     pqc_kem_cipher_text_size;
+  boolean                                   result2;
 
   if (!spdm_is_capabilities_flag_supported(spdm_context, TRUE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_KEY_EX_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_KEY_EX_CAP)) {
     return RETURN_UNSUPPORTED;
@@ -121,6 +125,14 @@ try_spdm_send_receive_key_exchange (
   internal_dump_hex (ptr, dhe_key_size);
   ptr += dhe_key_size;
 
+  pqc_kem_public_key_size = spdm_get_pqc_kem_public_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
+  pqc_kem_context = spdm_secured_message_pqc_kem_new (spdm_context->connection_info.algorithm.pqc_kem_algo);
+  spdm_secured_message_pqc_kem_generate_key (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
+  spdm_secured_message_pqc_kem_get_public_key (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context, ptr, &pqc_kem_public_key_size);
+  DEBUG((DEBUG_INFO, "ClientKey PQC (0x%x):\n", pqc_kem_public_key_size));
+  internal_dump_hex (ptr, pqc_kem_public_key_size);
+  ptr += pqc_kem_public_key_size;
+
   opaque_key_exchange_req_size = spdm_get_opaque_data_supported_version_data_size (spdm_context);
   *(uint16 *)ptr = (uint16)opaque_key_exchange_req_size;
   ptr += sizeof(uint16);
@@ -129,39 +141,46 @@ try_spdm_send_receive_key_exchange (
   ptr += opaque_key_exchange_req_size;
 
   spdm_request_size = (uintn)ptr - (uintn)&spdm_request;
-  status = spdm_send_spdm_request (spdm_context, NULL, spdm_request_size, &spdm_request);
+  status = spdm_send_spdm_fragment_encap_request (spdm_context, NULL, spdm_request_size, &spdm_request);
   if (RETURN_ERROR(status)) {
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_DEVICE_ERROR;
   }
 
   spdm_response_size = sizeof(spdm_response);
   zero_mem (&spdm_response, sizeof(spdm_response));
-  status = spdm_receive_spdm_response (spdm_context, NULL, &spdm_response_size, &spdm_response);
+  status = spdm_receive_spdm_fragment_encap_response (spdm_context, NULL, &spdm_response_size, &spdm_response);
   if (RETURN_ERROR(status)) {
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_DEVICE_ERROR;
   }
   if (spdm_response_size < sizeof(spdm_message_header_t)) {
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_DEVICE_ERROR;
   }
   if (spdm_response.header.request_response_code == SPDM_ERROR) {
     status = spdm_handle_error_response_main(spdm_context, NULL, NULL, 0, &spdm_response_size, &spdm_response, SPDM_KEY_EXCHANGE, SPDM_KEY_EXCHANGE_RSP, sizeof(spdm_key_exchange_response_max_t));
     if (RETURN_ERROR(status)) {
       spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+      spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
       return status;
     }
   } else if (spdm_response.header.request_response_code != SPDM_KEY_EXCHANGE_RSP) {
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_DEVICE_ERROR;
   }
   if (spdm_response_size < sizeof(spdm_key_exchange_response_t)) {
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_DEVICE_ERROR;
   }
   if (spdm_response_size > sizeof(spdm_response)) {
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_DEVICE_ERROR;
   }
 
@@ -172,11 +191,13 @@ try_spdm_send_receive_key_exchange (
   if (spdm_response.mut_auth_requested != 0) {
     if ((*req_slot_id_param != 0xF) && (*req_slot_id_param >= spdm_context->local_context.slot_count)) {
       spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+      spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
       return RETURN_DEVICE_ERROR;
     }
   } else {
     if (*req_slot_id_param != 0) {
       spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+      spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
       return RETURN_DEVICE_ERROR;
     }
   }
@@ -185,6 +206,7 @@ try_spdm_send_receive_key_exchange (
   session_info = spdm_assign_session_id (spdm_context, *session_id, FALSE);
   if (session_info == NULL) {
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_DEVICE_ERROR;
   }
 
@@ -195,12 +217,16 @@ try_spdm_send_receive_key_exchange (
   if (RETURN_ERROR(status)) {
     spdm_free_session_id (spdm_context, *session_id);
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_SECURITY_VIOLATION;
   }
 
-  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
+  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
+                   PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                   spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
   measurement_summary_hash_size = spdm_get_measurement_summary_hash_size (spdm_context, TRUE, measurement_hash_type);
   hmac_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
+  pqc_kem_cipher_text_size = spdm_get_pqc_kem_cipher_text_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
 
   if (spdm_is_capabilities_flag_supported(spdm_context, TRUE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_HANDSHAKE_IN_THE_CLEAR_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_HANDSHAKE_IN_THE_CLEAR_CAP)) {
     hmac_size = 0;
@@ -208,12 +234,14 @@ try_spdm_send_receive_key_exchange (
 
   if (spdm_response_size <  sizeof(spdm_key_exchange_response_t) +
                           dhe_key_size +
+                          pqc_kem_cipher_text_size +
                           measurement_summary_hash_size +
                           sizeof(uint16) +
                           signature_size +
                           hmac_size) {
     spdm_free_session_id (spdm_context, *session_id);
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_DEVICE_ERROR;
   }
 
@@ -226,6 +254,11 @@ try_spdm_send_receive_key_exchange (
 
   ptr = spdm_response.exchange_data;
   ptr += dhe_key_size;
+
+  DEBUG((DEBUG_INFO, "ServerKey PQC (0x%x):\n", pqc_kem_cipher_text_size));
+  internal_dump_hex (ptr, pqc_kem_cipher_text_size);
+
+  ptr += pqc_kem_cipher_text_size;
 
   measurement_summary_hash = ptr;
   DEBUG((DEBUG_INFO, "measurement_summary_hash (0x%x) - ", measurement_summary_hash_size));
@@ -241,6 +274,7 @@ try_spdm_send_receive_key_exchange (
   ptr += sizeof(uint16);
   if (spdm_response_size < sizeof(spdm_key_exchange_response_t) +
                          dhe_key_size +
+                         pqc_kem_cipher_text_size +
                          measurement_summary_hash_size +
                          sizeof(uint16) +
                          opaque_length +
@@ -248,12 +282,14 @@ try_spdm_send_receive_key_exchange (
                          hmac_size) {
     spdm_free_session_id (spdm_context, *session_id);
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_DEVICE_ERROR;
   }
   status = spdm_process_opaque_data_version_selection_data (spdm_context, opaque_length, ptr);
   if (RETURN_ERROR(status)) {
     spdm_free_session_id (spdm_context, *session_id);
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_UNSUPPORTED;
   }
 
@@ -261,6 +297,7 @@ try_spdm_send_receive_key_exchange (
 
   spdm_response_size = sizeof(spdm_key_exchange_response_t) +
                      dhe_key_size +
+                     pqc_kem_cipher_text_size +
                      measurement_summary_hash_size +
                      sizeof(uint16) +
                      opaque_length +
@@ -271,6 +308,7 @@ try_spdm_send_receive_key_exchange (
   if (RETURN_ERROR(status)) {
     spdm_free_session_id (spdm_context, *session_id);
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_SECURITY_VIOLATION;
   }
 
@@ -282,6 +320,7 @@ try_spdm_send_receive_key_exchange (
   if (!result) {
     spdm_free_session_id (spdm_context, *session_id);
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     spdm_context->error_state = SPDM_STATUS_ERROR_KEY_EXCHANGE_FAILURE;
     return RETURN_SECURITY_VIOLATION;
   }
@@ -290,6 +329,7 @@ try_spdm_send_receive_key_exchange (
   if (RETURN_ERROR(status)) {
     spdm_free_session_id (spdm_context, *session_id);
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
     return RETURN_SECURITY_VIOLATION;
   }
 
@@ -298,7 +338,9 @@ try_spdm_send_receive_key_exchange (
   //
   result = spdm_secured_message_dhe_compute_key (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context, spdm_response.exchange_data, dhe_key_size, session_info->secured_message_context);
   spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
-  if (!result) {
+  result2 = spdm_secured_message_pqc_kem_decap (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context, &spdm_response.exchange_data[dhe_key_size], pqc_kem_cipher_text_size, session_info->secured_message_context);
+  spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
+  if (!result && !result2) {
     spdm_free_session_id (spdm_context, *session_id);
     return RETURN_SECURITY_VIOLATION;
   }

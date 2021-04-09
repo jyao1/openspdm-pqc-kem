@@ -251,6 +251,8 @@ extern void    *m_responder_cert_chain_buffer;
 extern uintn   m_responder_cert_chain_buffer_size;
 extern void    *m_dhe_secret_buffer;
 extern uintn   m_dhe_secret_buffer_size;
+extern void    *m_pqc_secret_buffer;
+extern uintn   m_pqc_secret_buffer_size;
 extern void    *m_psk_buffer;
 extern uintn   m_psk_buffer_size;
 

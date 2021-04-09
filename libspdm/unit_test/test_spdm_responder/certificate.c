@@ -290,7 +290,7 @@ void test_spdm_responder_certificate_case7(void **state) {
 
   // Testing Lengths at the boundary of maximum integer values
   uint16               TestLenghts[] = {0, MAX_INT8, (uint16)(MAX_INT8+1), MAX_UINT8, MAX_INT16, (uint16)(MAX_INT16+1), MAX_UINT16, (uint16)(-1)};
-  uint16               ExpectedChunkSize;
+  uint32               ExpectedChunkSize;
 
   // Setting up the spdm_context and loading a sample certificate chain
   spdm_test_context = *state;

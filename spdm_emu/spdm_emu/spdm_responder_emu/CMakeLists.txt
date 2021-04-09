@@ -29,8 +29,11 @@ SET(spdm_responder_emu_LIBRARY
     ${CRYPTO}lib
     rnglib
     cryptlib_${CRYPTO}
+    pqc_crypt_lib_oqs
+    oqs
     malloclib
     spdm_crypt_lib
+    spdm_pqc_crypt_lib
     spdm_secured_message_lib
     spdm_transport_mctp_lib
     spdm_transport_pcidoe_lib

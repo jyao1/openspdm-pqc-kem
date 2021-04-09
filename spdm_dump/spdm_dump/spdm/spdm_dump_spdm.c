@@ -42,6 +42,12 @@ uint16             m_spdm_dhe_named_group;
 uint16             m_spdm_aead_cipher_suite;
 uint16             m_spdm_req_base_asym_alg;
 uint16             m_spdm_key_schedule;
+pqc_algo_t         m_spdm_pqc_sig_algo;
+pqc_algo_t         m_spdm_pqc_req_sig_algo;
+pqc_algo_t         m_spdm_pqc_kem_algo;
+
+uint8              m_spdm_fragment_encapsulated_message[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
+uintn              m_spdm_fragment_encapsulated_message_size;
 
 dispatch_table_entry_t m_spdm_vendor_dispatch[] = {
   {SPDM_REGISTRY_ID_DMTF,    "DMTF",    NULL},
@@ -189,6 +195,11 @@ value_string_entry_t  m_spdm_key_update_operation_string_table[] = {
 
 value_string_entry_t  m_spdm_end_session_attribute_string_table[] = {
   {SPDM_END_SESSION_REQUEST_ATTRIBUTES_PRESERVE_NEGOTIATED_STATE_CLEAR, "PreserveStateClear"},
+};
+
+value_string_entry_t  m_spdm_fragment_attribute_string_table[] = {
+  {SPDM_FRAGMENT_REQUEST_ATTRIBUTER_BEGIN, "BEGIN"},
+  {SPDM_FRAGMENT_REQUEST_ATTRIBUTER_END,   "END"},
 };
 
 uint32
@@ -399,7 +410,8 @@ dump_spdm_negotiate_algorithms (
   uintn                                          message_size;
   spdm_negotiate_algorithms_request_t              *spdm_request;
   uintn                                          index;
-  spdm_negotiate_algorithms_common_struct_table_t  *struct_table;
+  spdm_negotiate_algorithms_struct_table_t       *struct_table;
+  uint8                                          fixed_alg_size;
   uint8                                          ext_alg_count;
 
   printf ("SPDM_NEGOTIATE_ALGORITHMS ");
@@ -413,8 +425,27 @@ dump_spdm_negotiate_algorithms (
   spdm_request = buffer;
   message_size += spdm_request->ext_asym_count * sizeof(spdm_extended_algorithm_t) +
                  spdm_request->ext_hash_count * sizeof(spdm_extended_algorithm_t) +
-                 spdm_request->header.param1 * sizeof(spdm_negotiate_algorithms_common_struct_table_t);
+                 spdm_request->header.param1 * sizeof(spdm_negotiate_algorithms_struct_table_t);
   if (buffer_size < message_size) {
+    printf ("\n");
+    return ;
+  }
+  struct_table = (void *)((uintn)buffer +
+                              sizeof(spdm_negotiate_algorithms_request_t) +
+                              spdm_request->ext_asym_count * sizeof(spdm_extended_algorithm_t) +
+                              spdm_request->ext_hash_count * sizeof(spdm_extended_algorithm_t)
+                              );
+  for (index = 0; index < spdm_request->header.param1; index++) {
+    fixed_alg_size = (struct_table->alg_count >> 4) & 0xF;
+    ext_alg_count = struct_table->alg_count & 0xF;
+    struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_struct_table_t) + fixed_alg_size + sizeof(uint32) * ext_alg_count);
+  }
+  message_size = (uintn)struct_table - (uintn)spdm_request;
+  if (buffer_size < message_size) {
+    printf ("\n");
+    return ;
+  }
+  if (message_size != spdm_request->length) {
     printf ("\n");
     return ;
   }
@@ -436,24 +467,40 @@ dump_spdm_negotiate_algorithms (
       for (index = 0; index <spdm_request->header.param1; index++) {
         switch (struct_table->alg_type) {
         case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_DHE:
-          printf ("), DHE=0x%04x(", struct_table->alg_supported);
-          dump_entry_flags (m_spdm_dhe_value_string_table, ARRAY_SIZE(m_spdm_dhe_value_string_table), struct_table->alg_supported);
+          printf ("), DHE=0x%04x(", *(uint16 *)(struct_table + 1));
+          dump_entry_flags (m_spdm_dhe_value_string_table, ARRAY_SIZE(m_spdm_dhe_value_string_table), *(uint16 *)(struct_table + 1));
           break;
         case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_AEAD:
-          printf ("), AEAD=0x%04x(", struct_table->alg_supported);
-          dump_entry_flags (m_spdm_aead_value_string_table, ARRAY_SIZE(m_spdm_aead_value_string_table), struct_table->alg_supported);
+          printf ("), AEAD=0x%04x(", *(uint16 *)(struct_table + 1));
+          dump_entry_flags (m_spdm_aead_value_string_table, ARRAY_SIZE(m_spdm_aead_value_string_table), *(uint16 *)(struct_table + 1));
           break;
         case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_REQ_BASE_ASYM_ALG:
-          printf ("), ReqAsym=0x%04x(", struct_table->alg_supported);
-          dump_entry_flags (m_spdm_asym_value_string_table, ARRAY_SIZE(m_spdm_asym_value_string_table), struct_table->alg_supported);
+          printf ("), ReqAsym=0x%04x(", *(uint16 *)(struct_table + 1));
+          dump_entry_flags (m_spdm_asym_value_string_table, ARRAY_SIZE(m_spdm_asym_value_string_table), *(uint16 *)(struct_table + 1));
           break;
         case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_KEY_SCHEDULE:
-          printf ("), key_schedule=0x%04x(", struct_table->alg_supported);
-          dump_entry_flags (m_spdm_key_schedule_value_string_table, ARRAY_SIZE(m_spdm_key_schedule_value_string_table), struct_table->alg_supported);
+          printf ("), key_schedule=0x%04x(", *(uint16 *)(struct_table + 1));
+          dump_entry_flags (m_spdm_key_schedule_value_string_table, ARRAY_SIZE(m_spdm_key_schedule_value_string_table), *(uint16 *)(struct_table + 1));
+          break;
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_DIGITAL_SIGNATURE_ALGO:
+          printf ("), pqc_sig=");
+          dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
+          printf ("(");
+          break;
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_REQ_DIGITAL_SIGNATURE_ALGO:
+          printf ("), pqc_req_sig=");
+          dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
+          printf ("(");
+          break;
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEY_ESTABLISHMENT_ALGO:
+          printf ("), pqc_kem=");
+          dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
+          printf ("(");
           break;
         }
+        fixed_alg_size = (struct_table->alg_count >> 4) & 0xF;
         ext_alg_count = struct_table->alg_count & 0xF;
-        struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_common_struct_table_t) + sizeof(uint32) * ext_alg_count);
+        struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_struct_table_t) + fixed_alg_size + sizeof(uint32) * ext_alg_count);
       }
     }
     printf (")) ");
@@ -477,8 +524,9 @@ dump_spdm_algorithms (
   uintn                                          message_size;
   spdm_algorithms_response_t                       *spdm_response;
   uintn                                          index;
-  spdm_negotiate_algorithms_common_struct_table_t  *struct_table;
+  spdm_negotiate_algorithms_struct_table_t         *struct_table;
   spdm_data_parameter_t                            parameter;
+  uint8                                          fixed_alg_size;
   uint8                                          ext_alg_count;
 
   printf ("SPDM_ALGORITHMS ");
@@ -492,8 +540,28 @@ dump_spdm_algorithms (
   spdm_response = buffer;
   message_size += spdm_response->ext_asym_sel_count * sizeof(spdm_extended_algorithm_t) +
                  spdm_response->ext_hash_sel_count * sizeof(spdm_extended_algorithm_t) +
-                 spdm_response->header.param1 * sizeof(spdm_negotiate_algorithms_common_struct_table_t);
+                 spdm_response->header.param1 * sizeof(spdm_negotiate_algorithms_struct_table_t);
   if (buffer_size < message_size) {
+    printf ("\n");
+    return ;
+  }
+
+  struct_table = (void *)((uintn)buffer +
+                              sizeof(spdm_algorithms_response_t) +
+                              spdm_response->ext_asym_sel_count * sizeof(spdm_extended_algorithm_t) +
+                              spdm_response->ext_hash_sel_count * sizeof(spdm_extended_algorithm_t)
+                              );
+  for (index = 0; index < spdm_response->header.param1; index++) {
+    fixed_alg_size = (struct_table->alg_count >> 4) & 0xF;
+    ext_alg_count = struct_table->alg_count & 0xF;
+    struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_struct_table_t) + fixed_alg_size + sizeof(uint32) * ext_alg_count);
+  }
+  message_size = (uintn)struct_table - (uintn)spdm_response;
+  if (buffer_size < message_size) {
+    printf ("\n");
+    return ;
+  }
+  if (message_size != spdm_response->length) {
     printf ("\n");
     return ;
   }
@@ -517,24 +585,40 @@ dump_spdm_algorithms (
       for (index = 0; index <spdm_response->header.param1; index++) {
         switch (struct_table->alg_type) {
         case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_DHE:
-          printf ("), DHE=0x%04x(", struct_table->alg_supported);
-          dump_entry_value (m_spdm_dhe_value_string_table, ARRAY_SIZE(m_spdm_dhe_value_string_table), struct_table->alg_supported);
+          printf ("), DHE=0x%04x(", *(uint16 *)(struct_table + 1));
+          dump_entry_value (m_spdm_dhe_value_string_table, ARRAY_SIZE(m_spdm_dhe_value_string_table), *(uint16 *)(struct_table + 1));
           break;
         case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_AEAD:
-          printf ("), AEAD=0x%04x(", struct_table->alg_supported);
-          dump_entry_value (m_spdm_aead_value_string_table, ARRAY_SIZE(m_spdm_aead_value_string_table), struct_table->alg_supported);
+          printf ("), AEAD=0x%04x(", *(uint16 *)(struct_table + 1));
+          dump_entry_value (m_spdm_aead_value_string_table, ARRAY_SIZE(m_spdm_aead_value_string_table), *(uint16 *)(struct_table + 1));
           break;
         case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_REQ_BASE_ASYM_ALG:
-          printf ("), ReqAsym=0x%04x(", struct_table->alg_supported);
-          dump_entry_value (m_spdm_asym_value_string_table, ARRAY_SIZE(m_spdm_asym_value_string_table), struct_table->alg_supported);
+          printf ("), ReqAsym=0x%04x(", *(uint16 *)(struct_table + 1));
+          dump_entry_value (m_spdm_asym_value_string_table, ARRAY_SIZE(m_spdm_asym_value_string_table), *(uint16 *)(struct_table + 1));
           break;
         case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_KEY_SCHEDULE:
-          printf ("), KeySchedule=0x%04x(", struct_table->alg_supported);
-          dump_entry_value (m_spdm_key_schedule_value_string_table, ARRAY_SIZE(m_spdm_key_schedule_value_string_table), struct_table->alg_supported);
+          printf ("), KeySchedule=0x%04x(", *(uint16 *)(struct_table + 1));
+          dump_entry_value (m_spdm_key_schedule_value_string_table, ARRAY_SIZE(m_spdm_key_schedule_value_string_table), *(uint16 *)(struct_table + 1));
+          break;
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_DIGITAL_SIGNATURE_ALGO:
+          printf ("), pqc_sig=");
+          dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
+          printf ("(");
+          break;
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_REQ_DIGITAL_SIGNATURE_ALGO:
+          printf ("), pqc_req_sig=");
+          dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
+          printf ("(");
+          break;
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEY_ESTABLISHMENT_ALGO:
+          printf ("), pqc_kem=");
+          dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
+          printf ("(");
           break;
         }
+        fixed_alg_size = (struct_table->alg_count >> 4) & 0xF;
         ext_alg_count = struct_table->alg_count & 0xF;
-        struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_common_struct_table_t) + sizeof(uint32) * ext_alg_count);
+        struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_struct_table_t) + fixed_alg_size + sizeof(uint32) * ext_alg_count);
       }
     }
     printf (")) ");
@@ -560,20 +644,30 @@ dump_spdm_algorithms (
     for (index = 0; index <spdm_response->header.param1; index++) {
       switch (struct_table->alg_type) {
       case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_DHE:
-        m_spdm_dhe_named_group = struct_table->alg_supported;
+        m_spdm_dhe_named_group = *(uint16 *)(struct_table + 1);
         break;
       case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_AEAD:
-        m_spdm_aead_cipher_suite = struct_table->alg_supported;
+        m_spdm_aead_cipher_suite = *(uint16 *)(struct_table + 1);
         break;
       case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_REQ_BASE_ASYM_ALG:
-        m_spdm_req_base_asym_alg = struct_table->alg_supported;
+        m_spdm_req_base_asym_alg = *(uint16 *)(struct_table + 1);
         break;
       case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_KEY_SCHEDULE:
-        m_spdm_key_schedule = struct_table->alg_supported;
+        m_spdm_key_schedule = *(uint16 *)(struct_table + 1);
+        break;
+      case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_DIGITAL_SIGNATURE_ALGO:
+        copy_mem (m_spdm_pqc_sig_algo, struct_table + 1, sizeof(pqc_algo_t));
+        break;
+      case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_REQ_DIGITAL_SIGNATURE_ALGO:
+        copy_mem (m_spdm_pqc_req_sig_algo, struct_table + 1, sizeof(pqc_algo_t));
+        break;
+      case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEY_ESTABLISHMENT_ALGO:
+        copy_mem (m_spdm_pqc_kem_algo, struct_table + 1, sizeof(pqc_algo_t));
         break;
       }
+      fixed_alg_size = (struct_table->alg_count >> 4) & 0xF;
       ext_alg_count = struct_table->alg_count & 0xF;
-      struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_common_struct_table_t) + sizeof(uint32) * ext_alg_count);
+      struct_table = (void *)((uintn)struct_table + sizeof (spdm_negotiate_algorithms_struct_table_t) + fixed_alg_size + sizeof(uint32) * ext_alg_count);
     }
   }
 
@@ -587,6 +681,9 @@ dump_spdm_algorithms (
   spdm_set_data (m_spdm_context, SPDM_DATA_AEAD_CIPHER_SUITE, &parameter, &m_spdm_aead_cipher_suite, sizeof(uint16));
   spdm_set_data (m_spdm_context, SPDM_DATA_REQ_BASE_ASYM_ALG, &parameter, &m_spdm_req_base_asym_alg, sizeof(uint16));
   spdm_set_data (m_spdm_context, SPDM_DATA_KEY_SCHEDULE, &parameter, &m_spdm_key_schedule, sizeof(uint16));
+  spdm_set_data (m_spdm_context, SPDM_DATA_PQC_SIG_ALGO, &parameter, &m_spdm_pqc_sig_algo, sizeof(pqc_algo_t));
+  spdm_set_data (m_spdm_context, SPDM_DATA_PQC_REQ_SIG_ALGO, &parameter, &m_spdm_pqc_req_sig_algo, sizeof(pqc_algo_t));
+  spdm_set_data (m_spdm_context, SPDM_DATA_PQC_KEM_ALGO, &parameter, &m_spdm_pqc_kem_algo, sizeof(pqc_algo_t));
 
   spdm_append_message_a (m_spdm_context, buffer, message_size);
 }
@@ -859,17 +956,22 @@ dump_spdm_challenge_auth (
   uintn                         hash_size;
   uintn                         measurement_summary_hash_size;
   uintn                         signature_size;
+  uintn                         asym_signature_size;
+  uintn                         pqc_signature_size;
   uint16                        opaque_length;
   uint8                         *cert_chain_hash;
   uint8                         *nonce;
   uint8                         *measurement_summary_hash;
   uint8                         *opaque_data;
   uint8                         *signature;
+  uint32                        *pqc_sigature_length_ptr;
 
   printf ("SPDM_CHALLENGE_AUTH ");
 
   hash_size = spdm_get_hash_size (m_spdm_base_hash_algo);
-  signature_size = spdm_get_asym_signature_size (m_spdm_base_asym_algo);
+  asym_signature_size = spdm_get_asym_signature_size (m_spdm_base_asym_algo);
+  pqc_signature_size = spdm_get_pqc_sig_signature_size (m_spdm_pqc_sig_algo);
+  signature_size = asym_signature_size + PQC_SIG_SIGNATURE_LENGTH_SIZE + pqc_signature_size;
   measurement_summary_hash_size = spdm_dump_get_measurement_summary_hash_size (m_cached_measurement_summary_hash_type);
 
   message_size = sizeof(spdm_challenge_auth_response_t) + hash_size + 32 + measurement_summary_hash_size + sizeof(uint16);
@@ -920,7 +1022,12 @@ dump_spdm_challenge_auth (
       dump_spdm_opaque_data (opaque_data, opaque_length);
       signature = opaque_data + opaque_length;
       printf ("\n    Signature(");
-      dump_data (signature, signature_size);
+      dump_data (signature, asym_signature_size);
+      printf (")");
+      pqc_sigature_length_ptr = (uint32 *)(signature + asym_signature_size);
+      printf ("\n    Signature.PqcSigSize(0x%08x)", *pqc_sigature_length_ptr);
+      printf ("\n    Signature.PqcSig(");
+      dump_data ((void *)(pqc_sigature_length_ptr + 1), pqc_signature_size);
       printf (")");
     }
   }
@@ -1062,12 +1169,15 @@ dump_spdm_measurements (
   uintn                       message_size;
   uint32                      measurement_record_length;
   uintn                       signature_size;
+  uintn                       asym_signature_size;
+  uintn                       pqc_signature_size;
   uint16                      opaque_length;
   boolean                     include_signature;
   uint8                       *measurement_record;
   uint8                       *nonce;
   uint8                       *opaque_data;
   uint8                       *signature;
+  uint32                      *pqc_sigature_length_ptr;
 
   printf ("SPDM_MEASUREMENTS ");
 
@@ -1089,7 +1199,9 @@ dump_spdm_measurements (
   }
 
   if (include_signature) {
-    signature_size = spdm_get_asym_signature_size (m_spdm_base_asym_algo);
+    asym_signature_size = spdm_get_asym_signature_size (m_spdm_base_asym_algo);
+    pqc_signature_size = spdm_get_pqc_sig_signature_size (m_spdm_pqc_sig_algo);
+    signature_size = asym_signature_size + PQC_SIG_SIGNATURE_LENGTH_SIZE + pqc_signature_size;
 
     message_size += 32 + sizeof(uint16);
     if (buffer_size < message_size) {
@@ -1142,7 +1254,12 @@ dump_spdm_measurements (
         dump_spdm_opaque_data (opaque_data, opaque_length);
         signature = opaque_data + opaque_length;
         printf ("\n    Signature(");
-        dump_data (signature, signature_size);
+        dump_data (signature, asym_signature_size);
+        printf (")");
+        pqc_sigature_length_ptr = (uint32 *)(signature + asym_signature_size);
+        printf ("\n    Signature.PqcSigSize(0x%08x)", *pqc_sigature_length_ptr);
+        printf ("\n    Signature.PqcSig(");
+        dump_data ((void *)(pqc_sigature_length_ptr + 1), pqc_signature_size);
         printf (")");
       } else {
         opaque_length = *(uint16 *)(measurement_record + measurement_record_length);
@@ -1292,6 +1409,7 @@ dump_spdm_key_exchange (
   spdm_key_exchange_request_t  *spdm_request;
   uintn                      message_size;
   uintn                      dhe_key_size;
+  uintn                      pqc_public_key_size;
   uint16                     opaque_length;
   uint8                      *exchange_data;
   uint8                      *opaque_data;
@@ -1306,13 +1424,14 @@ dump_spdm_key_exchange (
 
   spdm_request = buffer;
   dhe_key_size = spdm_get_dhe_pub_key_size (m_spdm_dhe_named_group);
-  message_size += dhe_key_size + sizeof(uint16);
+  pqc_public_key_size = spdm_get_pqc_kem_public_key_size (m_spdm_pqc_kem_algo);
+  message_size += dhe_key_size + pqc_public_key_size + sizeof(uint16);
   if (buffer_size < message_size) {
     printf ("\n");
     return ;
   }
 
-  opaque_length = *(uint16 *)((uintn)buffer + sizeof(spdm_key_exchange_request_t) + dhe_key_size);
+  opaque_length = *(uint16 *)((uintn)buffer + sizeof(spdm_key_exchange_request_t) + dhe_key_size + pqc_public_key_size);
   message_size += opaque_length;
   if (buffer_size < message_size) {
     printf ("\n");
@@ -1334,8 +1453,11 @@ dump_spdm_key_exchange (
       printf ("\n    ExchangeData(");
       dump_data (exchange_data, dhe_key_size);
       printf (")");
-      opaque_length = *(uint16 *)((uint8 *)exchange_data + dhe_key_size);
-      opaque_data = (void *)((uint8 *)exchange_data + dhe_key_size + sizeof(uint16));
+      printf ("\n    ExchangeData.PqcPublicKey(");
+      dump_data (exchange_data + dhe_key_size, pqc_public_key_size);
+      printf (")");
+      opaque_length = *(uint16 *)((uint8 *)exchange_data + dhe_key_size + pqc_public_key_size);
+      opaque_data = (void *)((uint8 *)exchange_data + dhe_key_size + pqc_public_key_size + sizeof(uint16));
       printf ("\n    OpaqueData(");
       dump_data (opaque_data, opaque_length);
       printf (")");
@@ -1359,8 +1481,11 @@ dump_spdm_key_exchange_rsp (
   spdm_key_exchange_response_t  *spdm_response;
   uintn                       message_size;
   uintn                       dhe_key_size;
+  uintn                       pqc_cipher_text_size;
   uintn                       measurement_summary_hash_size;
   uintn                       signature_size;
+  uintn                       asym_signature_size;
+  uintn                       pqc_signature_size;
   uintn                       hmac_size;
   uint16                      opaque_length;
   boolean                     include_hmac;
@@ -1372,6 +1497,7 @@ dump_spdm_key_exchange_rsp (
   uint8                       th1_hash_data[64];
   spdm_data_parameter_t         parameter;
   uint8                       mut_auth_requested;
+  uint32                      *pqc_sigature_length_ptr;
 
   printf ("SPDM_KEY_EXCHANGE_RSP ");
 
@@ -1383,17 +1509,20 @@ dump_spdm_key_exchange_rsp (
 
   spdm_response = buffer;
   dhe_key_size = spdm_get_dhe_pub_key_size (m_spdm_dhe_named_group);
-  signature_size = spdm_get_asym_signature_size (m_spdm_base_asym_algo);
+  pqc_cipher_text_size = spdm_get_pqc_kem_cipher_text_size (m_spdm_pqc_kem_algo);
+  asym_signature_size = spdm_get_asym_signature_size (m_spdm_base_asym_algo);
+  pqc_signature_size = spdm_get_pqc_sig_signature_size (m_spdm_pqc_sig_algo);
+  signature_size = asym_signature_size + PQC_SIG_SIGNATURE_LENGTH_SIZE + pqc_signature_size;
   measurement_summary_hash_size = spdm_dump_get_measurement_summary_hash_size (m_cached_measurement_summary_hash_type);
   hmac_size = spdm_get_hash_size (m_spdm_base_hash_algo);
 
-  message_size += dhe_key_size + measurement_summary_hash_size + sizeof(uint16);
+  message_size += dhe_key_size + pqc_cipher_text_size + measurement_summary_hash_size + sizeof(uint16);
   if (buffer_size < message_size) {
     printf ("\n");
     return ;
   }
 
-  opaque_length = *(uint16 *)((uintn)buffer + sizeof(spdm_key_exchange_response_t) + dhe_key_size + measurement_summary_hash_size);
+  opaque_length = *(uint16 *)((uintn)buffer + sizeof(spdm_key_exchange_response_t) + dhe_key_size + pqc_cipher_text_size + measurement_summary_hash_size);
   message_size += opaque_length + signature_size;
   include_hmac = ((m_spdm_responder_capabilities_flags & SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_HANDSHAKE_IN_THE_CLEAR_CAP) == 0) ||
                 ((m_spdm_requester_capabilities_flags & SPDM_GET_CAPABILITIES_REQUEST_FLAGS_HANDSHAKE_IN_THE_CLEAR_CAP) == 0);
@@ -1418,7 +1547,10 @@ dump_spdm_key_exchange_rsp (
       printf ("\n    ExchangeData(");
       dump_data (exchange_data, dhe_key_size);
       printf (")");
-      measurement_summary_hash = exchange_data + dhe_key_size;
+      printf ("\n    ExchangeData.PqcCipherText(");
+      dump_data (exchange_data + dhe_key_size, pqc_cipher_text_size);
+      printf (")");
+      measurement_summary_hash = exchange_data + dhe_key_size + pqc_cipher_text_size;
       if (measurement_summary_hash_size != 0) {
         printf ("\n    MeasurementSummaryHash(");
         dump_data (measurement_summary_hash, measurement_summary_hash_size);
@@ -1432,7 +1564,12 @@ dump_spdm_key_exchange_rsp (
       dump_spdm_opaque_data (opaque_data, opaque_length);
       signature = opaque_data + opaque_length;
       printf ("\n    Signature(");
-      dump_data (signature, signature_size);
+      dump_data (signature, asym_signature_size);
+      printf (")");
+      pqc_sigature_length_ptr = (uint32 *)(signature + asym_signature_size);
+      printf ("\n    Signature.PqcSigSize(0x%08x)", *pqc_sigature_length_ptr);
+      printf ("\n    Signature.PqcSig(");
+      dump_data ((void *)(pqc_sigature_length_ptr + 1), pqc_signature_size);
       printf (")");
       if (include_hmac) {
         verify_data = signature + signature_size;
@@ -1494,10 +1631,13 @@ dump_spdm_finish (
   spdm_finish_request_t  *spdm_request;
   uintn                message_size;
   uintn                signature_size;
+  uintn                asym_signature_size;
+  uintn                pqc_signature_size;
   uintn                hmac_size;
   boolean              include_signature;
   uint8                *signature;
   uint8                *verify_data;
+  uint32               *pqc_sigature_length_ptr;
 
   printf ("SPDM_FINISH ");
 
@@ -1508,7 +1648,9 @@ dump_spdm_finish (
   }
 
   spdm_request = buffer;
-  signature_size = spdm_get_req_asym_signature_size (m_spdm_req_base_asym_alg);
+  asym_signature_size = spdm_get_req_asym_signature_size (m_spdm_req_base_asym_alg);
+  pqc_signature_size = spdm_get_pqc_req_sig_signature_size (m_spdm_pqc_req_sig_algo);
+  signature_size = asym_signature_size + PQC_SIG_SIGNATURE_LENGTH_SIZE + pqc_signature_size;
   hmac_size = spdm_get_hash_size (m_spdm_base_hash_algo);
 
   include_signature = ((spdm_request->header.param1 & SPDM_FINISH_REQUEST_ATTRIBUTES_SIGNATURE_INCLUDED) != 0);
@@ -1532,7 +1674,12 @@ dump_spdm_finish (
       if (include_signature) {
         signature = (void *)(spdm_request + 1);
         printf ("\n    Signature(");
-        dump_data (signature, signature_size);
+        dump_data (signature, asym_signature_size);
+        printf (")");
+        pqc_sigature_length_ptr = (uint32 *)(signature + asym_signature_size);
+        printf ("\n    Signature.PqcSigSize(0x%08x)", *pqc_sigature_length_ptr);
+        printf ("\n    Signature.PqcSig(");
+        dump_data ((void *)(pqc_sigature_length_ptr + 1), pqc_signature_size);
         printf (")");
         verify_data = signature + signature_size;
       } else {
@@ -2176,7 +2323,7 @@ dump_spdm_end_session_ack (
 {
   printf ("SPDM_END_SESSION_ACK ");
 
-  if (buffer_size < sizeof(spdm_end_session_response_t)) {
+  if (buffer_size < sizeof(spdm_fragment_request_t)) {
     printf ("\n");
     return ;
   }
@@ -2188,6 +2335,158 @@ dump_spdm_end_session_ack (
   spdm_free_session_id (m_spdm_context, m_current_session_id);
 
   printf ("\n");
+}
+
+void
+dump_spdm_fragment_request (
+  IN void    *buffer,
+  IN uintn   buffer_size
+  )
+{
+  spdm_fragment_request_t  *spdm_request;
+  uintn                    header_size;
+
+  printf ("SPDM_FRAGMENT_REQUEST ");
+
+  header_size = sizeof(spdm_fragment_request_t);
+  if (buffer_size < header_size) {
+    printf ("\n");
+    return ;
+  }
+
+  spdm_request = buffer;
+  if (!m_param_quite_mode) {
+    printf ("(Attr=0x%02x(",
+      spdm_request->header.param1
+      );
+    dump_entry_flags (m_spdm_fragment_attribute_string_table, ARRAY_SIZE(m_spdm_fragment_attribute_string_table), spdm_request->header.param1);
+    printf ("), ReqId=0x%02x, SeqID=0x%08x, Offset=0x%x, Length=0x%x) ",
+      spdm_request->header.param2,
+      spdm_request->sequence_id,
+      spdm_request->offset,
+      spdm_request->length
+      );
+  }
+  printf ("\n");
+
+  if ((spdm_request->header.param1 & SPDM_FRAGMENT_REQUEST_ATTRIBUTER_BEGIN) != 0) {
+    m_spdm_fragment_encapsulated_message_size = 0;
+    zero_mem (m_spdm_fragment_encapsulated_message, sizeof(m_spdm_fragment_encapsulated_message));
+  }
+  copy_mem (
+    &m_spdm_fragment_encapsulated_message[spdm_request->offset],
+    (uint8 *)buffer + header_size,
+    spdm_request->length
+    );
+  m_spdm_fragment_encapsulated_message_size = spdm_request->offset + spdm_request->length;
+
+  if ((spdm_request->header.param1 & SPDM_FRAGMENT_REQUEST_ATTRIBUTER_END) != 0) {
+    printf ("                ");
+    dump_spdm_message (m_spdm_fragment_encapsulated_message, m_spdm_fragment_encapsulated_message_size);
+  }
+}
+
+void
+dump_spdm_fragment_request_ack (
+  IN void    *buffer,
+  IN uintn   buffer_size
+  )
+{
+  spdm_fragment_request_ack_t  *spdm_response;
+  uintn                        header_size;
+
+  printf ("SPDM_FRAGMENT_REQUEST_ACK ");
+
+  header_size = sizeof(spdm_fragment_request_ack_t);
+  if (buffer_size < header_size) {
+    printf ("\n");
+    return ;
+  }
+
+  spdm_response = buffer;
+  if (!m_param_quite_mode) {
+    printf ("(ReqId=0x%02x, SeqID=0x%08x) ",
+      spdm_response->header.param2,
+      spdm_response->sequence_id
+      );
+  }
+  printf ("\n");
+}
+
+void
+dump_spdm_fragment_rsp_request (
+  IN void    *buffer,
+  IN uintn   buffer_size
+  )
+{
+  spdm_fragment_rsp_request_t  *spdm_request;
+  uintn                        header_size;
+
+  printf ("SPDM_FRAGMENT_RSP_REQUEST ");
+
+  header_size = sizeof(spdm_fragment_rsp_request_t);
+  if (buffer_size < header_size) {
+    printf ("\n");
+    return ;
+  }
+
+  spdm_request = buffer;
+  if (!m_param_quite_mode) {
+    printf ("(RspId=0x%02x, SeqID=0x%08x) ",
+      spdm_request->header.param2,
+      spdm_request->sequence_id
+      );
+  }
+  printf ("\n");
+}
+
+void
+dump_spdm_fragment_response (
+  IN void    *buffer,
+  IN uintn   buffer_size
+  )
+{
+  spdm_fragment_response_t *spdm_response;
+  uintn                    header_size;
+
+  printf ("SPDM_FRAGMENT_RESPONSE ");
+
+  header_size = sizeof(spdm_fragment_request_t);
+  if (buffer_size < header_size) {
+    printf ("\n");
+    return ;
+  }
+
+  spdm_response = buffer;
+  if (!m_param_quite_mode) {
+    printf ("(Attr=0x%02x(",
+      spdm_response->header.param1
+      );
+    dump_entry_flags (m_spdm_fragment_attribute_string_table, ARRAY_SIZE(m_spdm_fragment_attribute_string_table), spdm_response->header.param1);
+    printf ("), RspId=0x%02x, SeqID=0x%08x, Offset=0x%x, Length=0x%x) ",
+      spdm_response->header.param2,
+      spdm_response->sequence_id,
+      spdm_response->offset,
+      spdm_response->length
+      );
+  }
+  printf ("\n");
+
+  if ((spdm_response->header.param1 & SPDM_FRAGMENT_RESPONSE_ATTRIBUTER_BEGIN) != 0) {
+    m_spdm_fragment_encapsulated_message_size = 0;
+    zero_mem (m_spdm_fragment_encapsulated_message, sizeof(m_spdm_fragment_encapsulated_message));
+  }
+  copy_mem (
+    &m_spdm_fragment_encapsulated_message[spdm_response->offset],
+    (uint8 *)buffer + header_size,
+    spdm_response->length
+    );
+  m_spdm_fragment_encapsulated_message_size = spdm_response->offset + spdm_response->length;
+
+  if ((spdm_response->header.param1 & SPDM_FRAGMENT_RESPONSE_ATTRIBUTER_END) != 0) {
+    printf ("                ");
+    dump_spdm_message (m_spdm_fragment_encapsulated_message, m_spdm_fragment_encapsulated_message_size);
+  }
 }
 
 dispatch_table_entry_t m_spdm_dispatch[] = {
@@ -2228,6 +2527,11 @@ dispatch_table_entry_t m_spdm_dispatch[] = {
   {SPDM_GET_ENCAPSULATED_REQUEST,      "SPDM_GET_ENCAPSULATED_REQUEST",      dump_spdm_get_encapsulated_request},
   {SPDM_DELIVER_ENCAPSULATED_RESPONSE, "SPDM_DELIVER_ENCAPSULATED_RESPONSE", dump_spdm_deliver_encapsulated_response},
   {SPDM_END_SESSION,                   "SPDM_END_SESSION",                   dump_spdm_end_session},
+
+  {SPDM_FRAGMENT_REQUEST,              "SPDM_FRAGMENT_REQUEST",              dump_spdm_fragment_request},
+  {SPDM_FRAGMENT_REQUEST_ACK,          "SPDM_FRAGMENT_REQUEST_ACK",          dump_spdm_fragment_request_ack},
+  {SPDM_FRAGMENT_RSP_REQUEST,          "SPDM_FRAGMENT_RSP_REQUEST",          dump_spdm_fragment_rsp_request},
+  {SPDM_FRAGMENT_RESPONSE,             "SPDM_FRAGMENT_RESPONSE",             dump_spdm_fragment_response},
 };
 
 void

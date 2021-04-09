@@ -508,6 +508,80 @@ spdm_get_response_encapsulated_response_ack (
   );
 
 /**
+  Process the SPDM FRAGMENT_REQUEST request and return the response.
+
+  @param  spdm_context                  A pointer to the SPDM context.
+  @param  request_size                  size in bytes of the request data.
+  @param  request                      A pointer to the request data.
+  @param  response_size                 size in bytes of the response data.
+                                       On input, it means the size in bytes of response data buffer.
+                                       On output, it means the size in bytes of copied response data buffer if RETURN_SUCCESS is returned,
+                                       and means the size in bytes of desired response data buffer if RETURN_BUFFER_TOO_SMALL is returned.
+  @param  response                     A pointer to the response data.
+
+  @retval RETURN_SUCCESS               The request is processed and the response is returned.
+  @retval RETURN_BUFFER_TOO_SMALL      The buffer is too small to hold the data.
+  @retval RETURN_DEVICE_ERROR          A device error occurs when communicates with the device.
+  @retval RETURN_SECURITY_VIOLATION    Any verification fails.
+**/
+return_status
+spdm_get_response_fragment_request (
+  IN     void                 *context,
+  IN     uintn                request_size,
+  IN     void                 *request,
+  IN OUT uintn                *response_size,
+     OUT void                 *response
+  );
+
+/**
+  Process the SPDM FRAGMENT_RSP_REQUEST request and return the response.
+
+  @param  spdm_context                  A pointer to the SPDM context.
+  @param  request_size                  size in bytes of the request data.
+  @param  request                      A pointer to the request data.
+  @param  response_size                 size in bytes of the response data.
+                                       On input, it means the size in bytes of response data buffer.
+                                       On output, it means the size in bytes of copied response data buffer if RETURN_SUCCESS is returned,
+                                       and means the size in bytes of desired response data buffer if RETURN_BUFFER_TOO_SMALL is returned.
+  @param  response                     A pointer to the response data.
+
+  @retval RETURN_SUCCESS               The request is processed and the response is returned.
+  @retval RETURN_BUFFER_TOO_SMALL      The buffer is too small to hold the data.
+  @retval RETURN_DEVICE_ERROR          A device error occurs when communicates with the device.
+  @retval RETURN_SECURITY_VIOLATION    Any verification fails.
+**/
+return_status
+spdm_get_response_fragment_rsp_request (
+  IN     void                 *context,
+  IN     uintn                request_size,
+  IN     void                 *request,
+  IN OUT uintn                *response_size,
+     OUT void                 *response
+  );
+
+/**
+  Build the SPDM FRAGMENT_RESPONSE.
+
+  @param  spdm_context                  A pointer to the SPDM context.
+  @param  response_size                 size in bytes of the response data.
+                                       On input, it means the size in bytes of response data buffer.
+                                       On output, it means the size in bytes of copied response data buffer if RETURN_SUCCESS is returned,
+                                       and means the size in bytes of desired response data buffer if RETURN_BUFFER_TOO_SMALL is returned.
+  @param  response                     A pointer to the response data.
+
+  @retval RETURN_SUCCESS               The request is processed and the response is returned.
+  @retval RETURN_BUFFER_TOO_SMALL      The buffer is too small to hold the data.
+  @retval RETURN_DEVICE_ERROR          A device error occurs when communicates with the device.
+  @retval RETURN_SECURITY_VIOLATION    Any verification fails.
+**/
+return_status
+spdm_build_fragment_response (
+  IN     void                 *context,
+  IN OUT uintn                *response_size,
+     OUT void                 *response
+  );
+
+/**
   Get the SPDM encapsulated GET_DIGESTS request.
 
   @param  spdm_context                  A pointer to the SPDM context.
@@ -676,6 +750,18 @@ spdm_process_encap_response_key_update (
 **/
 spdm_get_spdm_response_func
 spdm_get_response_func_via_request_code (
+  IN     uint8                    request_code
+  );
+
+/**
+  Return need_fragment_response.
+
+  @param  request_code                  The SPDM request code.
+
+  @return need_fragment_response.
+**/
+boolean
+spdm_need_fragment_response (
   IN     uint8                    request_code
   );
 

@@ -18,6 +18,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <library/memlib.h>
 #include <library/cryptlib.h>
 #include <library/spdm_crypt_lib.h>
+#include <library/spdm_pqc_crypt_lib.h>
 #include <library/spdm_secured_message_lib.h>
 #include <library/spdm_device_secret_lib.h>
 
@@ -110,11 +111,31 @@ typedef enum {
   SPDM_DATA_SESSION_MUT_AUTH_REQUESTED,
   SPDM_DATA_SESSION_END_SESSION_ATTRIBUTES,
 
+  // PQC algo
+  SPDM_DATA_PQC_SIG_ALGO,
+  SPDM_DATA_PQC_KEM_ALGO,
+  SPDM_DATA_PQC_REQ_SIG_ALGO,
+  
+  SPDM_DATA_PQC_PUBLIC_KEY_MODE,
+  //
+  // PQC pubkey
+  //
+  SPDM_DATA_PQC_LOCAL_PUBLIC_KEY,
+  SPDM_DATA_PQC_PEER_PUBLIC_KEY,
+  SPDM_DATA_PQC_LOCAL_USED_PUBLIC_KEY,
+  SPDM_DATA_PQC_PEER_USED_PUBLIC_KEY,
+
   //
   // MAX
   //
   SPDM_DATA_MAX,
 } spdm_data_type_t;
+
+typedef enum {
+  SPDM_DATA_PUBLIC_KEY_MODE_RAW,
+  SPDM_DATA_PUBLIC_KEY_MODE_CERT,
+  SPDM_DATA_PUBLIC_KEY_MODE_MAX,
+} spdm_data_public_key_mode_t;
 
 typedef enum {
   SPDM_DATA_LOCATION_LOCAL,
@@ -903,6 +924,40 @@ spdm_get_local_cert_chain_data (
   IN     void                     *spdm_context,
      OUT void                     **cert_chain_data,
      OUT uintn                    *cert_chain_data_size
+  );
+
+/**
+  This function returns peer used PQC public key.
+
+  @param  spdm_context                  A pointer to the SPDM context.
+  @param  pqc_public_key                PQC public key
+  @param  pqc_public_key_size           size in bytes of the PQC public key.
+
+  @retval TRUE  PQC public key is returned.
+  @retval FALSE PQC public key is not found.
+**/
+boolean
+spdm_get_pqc_peer_public_key (
+  IN     void                     *spdm_context,
+     OUT void                     **pqc_public_key,
+     OUT uintn                    *pqc_public_key_size
+  );
+
+/**
+  This function returns local used PQC public key.
+
+  @param  spdm_context                  A pointer to the SPDM context.
+  @param  pqc_public_key                PQC public key
+  @param  pqc_public_key_size           size in bytes of the PQC public key.
+
+  @retval TRUE  PQC public key is returned.
+  @retval FALSE PQC public key is not found.
+**/
+boolean
+spdm_get_pqc_local_public_key (
+  IN     void                     *spdm_context,
+     OUT void                     **pqc_public_key,
+     OUT uintn                    *pqc_public_key_size
   );
 
 /**

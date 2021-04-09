@@ -19,6 +19,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <library/memlib.h>
 #include <library/cryptlib.h>
 #include <library/spdm_crypt_lib.h>
+#include <library/spdm_pqc_crypt_lib.h>
 #include <library/spdm_device_secret_lib.h>
 
 #define BIN_CONCAT_LABEL "spdm1.1 "
@@ -149,6 +150,18 @@ spdm_secured_message_set_algorithms (
   );
 
 /**
+  Set PQC algorithm to an SPDM secured message context.
+
+  @param  spdm_secured_message_context    A pointer to the SPDM secured message context.
+  @param  pqc_kem_algo                    Indicate the negotiated pqc_kem_algo for the SPDM session.
+*/
+void
+spdm_secured_message_set_pqc_algorithms (
+  IN void                         *spdm_secured_message_context,
+  IN pqc_algo_t                   pqc_kem_algo
+  );
+
+/**
   Set the psk_hint to an SPDM secured message context.
 
   @param  spdm_secured_message_context    A pointer to the SPDM secured message context.
@@ -176,6 +189,22 @@ spdm_secured_message_import_dhe_secret (
   IN void                         *spdm_secured_message_context,
   IN void                         *dhe_secret,
   IN uintn                        dhe_secret_size
+  );
+
+/**
+  Import the PQC Secret to an SPDM secured message context.
+
+  @param  spdm_secured_message_context    A pointer to the SPDM secured message context.
+  @param  pqc_secret                    Indicate the DHE secret.
+  @param  pqc_secret_size                The size in bytes of the DHE secret.
+
+  @retval RETURN_SUCCESS  DHE Secret is imported.
+*/
+return_status
+spdm_secured_message_import_pqc_shared_secret (
+  IN void                         *spdm_secured_message_context,
+  IN void                         *pqc_shared_secret,
+  IN uintn                        pqc_shared_secret_size
   );
 
 /**
@@ -572,6 +601,113 @@ void
 spdm_secured_message_set_last_spdm_error_struct (
   IN     void                      *spdm_secured_message_context,
   IN     spdm_error_struct_t         *last_spdm_error
+  );
+
+/**
+  Allocates and Initializes one PQC KEM context for subsequent use,
+  based upon negotiated PQC KEM algorithm.
+
+  @param  pqc_kem_algo                   SPDM pqc_kem_algo
+
+  @return  Pointer to the PQC KEM context that has been initialized.
+**/
+void *
+spdm_secured_message_pqc_kem_new (
+  IN      pqc_algo_t     pqc_kem_algo
+  );
+
+/**
+  Release the specified PQC KEM context,
+  based upon negotiated PQC KEM algorithm.
+
+  @param  pqc_kem_algo                   SPDM pqc_kem_algo
+  @param  context                      Pointer to the PQC KEM context.
+**/
+void
+spdm_secured_message_pqc_kem_free (
+  IN      pqc_algo_t     pqc_kem_algo,
+  IN      void         *context
+  );
+
+/**
+  Generate key pairs.
+
+  @param  context                      Pointer to the PQC KEM context.
+
+  @retval  TRUE   Key pairs are generated.
+  @retval  FALSE  Fail to generate the key pairs.
+**/
+boolean
+spdm_secured_message_pqc_kem_generate_key (
+  IN      pqc_algo_t     pqc_kem_algo,
+  IN      void         *context
+  );
+
+/**
+  Retrieve the PQC Public Key.
+
+  @param  context                      Pointer to the PQC SIG context.
+  @param  public_key                    Pointer to the buffer to receive generated public key.
+  @param  public_key_size                On input, the size of public_key buffer in bytes.
+                                       On output, the size of data returned in public_key buffer in bytes.
+
+  @retval  TRUE   Public Key was retrieved successfully.
+  @retval  FALSE  Fail to retrieve public key from raw data buffer.
+**/
+boolean
+spdm_secured_message_pqc_kem_get_public_key (
+  IN      pqc_algo_t     pqc_kem_algo,
+  IN      void         *context,
+  OUT     uint8        *public_key,
+  IN OUT  uintn        *public_key_size
+  );
+
+/**
+  Generate shared key and return the encap data for the shared key with peer public key,
+  based upon negotiated PQC KEM algorithm.
+
+  @param  context                      Pointer to the PQC KEM context.
+  @param  peer_public_key                Pointer to the peer's public key.
+  @param  peer_public_key_size            Size of peer's public key in bytes.
+  @param  cipher_text                   Pointer to the buffer to receive encapsulated cipher text for the shared key.
+  @param  cipher_text_size               On input, the size of cipher text buffer in bytes.
+                                       On output, the size of data returned in cipher text buffer in bytes.
+
+  @retval TRUE   PQC KEM shared key is generated and encapsulated succeeded.
+  @retval FALSE  PQC KEM shared key generation failed.
+  @retval FALSE  SharedKeySize or CipherTextSize is not large enough.
+**/
+boolean
+spdm_secured_message_pqc_kem_encap (
+  IN      pqc_algo_t     pqc_kem_algo,
+  IN OUT  void         *context,
+  IN      const uint8  *peer_public_key,
+  IN      uintn        peer_public_key_size,
+  OUT     uint8        *cipher_text,
+  IN OUT  uintn        *cipher_text_size,
+  IN OUT  void         *spdm_secured_message_context
+  );
+
+/**
+  Decap the cipher text to shared key with private key,
+  based upon negotiated PQC KEM algorithm.
+
+  @param  pqc_kem_algo                   SPDM pqc_kem_algo
+  @param  context                      Pointer to the PQC KEM context.
+  @param  cipher_text                   Pointer to the buffer to encapsulated cipher text for the shared key.
+  @param  cipher_text_size               The size of cipher text buffer in bytes.
+
+  @retval TRUE   PQC KEM shared key is decapsulated succeeded.
+  @retval FALSE  PQC KEM shared key decapsulation failed.
+  @retval FALSE  SharedKeySize is not large enough.
+**/
+boolean
+spdm_secured_message_pqc_kem_decap (
+  IN      pqc_algo_t     pqc_kem_algo,
+  IN OUT  void         *context,
+  IN      uint8        *cipher_text,
+  IN      uintn        cipher_text_size,
+  IN OUT  void         *spdm_secured_message_context
   );
 
 #endif

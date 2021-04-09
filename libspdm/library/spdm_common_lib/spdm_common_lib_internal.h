@@ -10,6 +10,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #ifndef __SPDM_COMMON_LIB_INTERNAL_H__
 #define __SPDM_COMMON_LIB_INTERNAL_H__
 
+#include <industry_standard/spdm_pqc.h>
 #include <library/spdm_common_lib.h>
 #include <library/spdm_secured_message_lib.h>
 
@@ -34,6 +35,9 @@ typedef struct {
   uint16               aead_cipher_suite;
   uint16               req_base_asym_alg;
   uint16               key_schedule;
+  pqc_algo_t           pqc_sig_algo;
+  pqc_algo_t           pqc_kem_algo;
+  pqc_algo_t           pqc_req_sig_algo;
 } spdm_device_algorithm_t;
 
 typedef struct {
@@ -62,6 +66,18 @@ typedef struct {
   //
   void                            *peer_cert_chain_provision;
   uintn                           peer_cert_chain_provision_size;
+  // PQC
+  spdm_data_public_key_mode_t     pqc_public_key_mode;
+  //
+  // My PQC pubkey
+  //
+  void                            *pqc_local_public_key_provision[MAX_SPDM_SLOT_COUNT];
+  uintn                           pqc_local_public_key_provision_size[MAX_SPDM_SLOT_COUNT];
+  //
+  // Peer PQC pubkey
+  //
+  void                            *pqc_peer_public_key_provision;
+  uintn                           pqc_peer_public_key_provision_size;
   //
   // PSK provision locally
   //
@@ -103,6 +119,16 @@ typedef struct {
   //
   uint8                           *local_used_cert_chain_buffer;
   uintn                           local_used_cert_chain_buffer_size;
+  //
+  // Peer used PQC pubkey
+  //
+  uint8                           pqc_peer_used_public_key[MAX_PQC_SIG_PUBLIC_KEY_SIZE];
+  uintn                           pqc_peer_used_public_key_size;
+  //
+  // Local used PQC pubkey
+  //
+  uint8                           *pqc_local_used_public_key;
+  uintn                           pqc_local_used_public_key_size;
 } spdm_connection_info_t;
 
 
@@ -115,7 +141,7 @@ typedef struct {
 typedef struct {
   uintn   max_buffer_size;
   uintn   buffer_size;
-  uint8   buffer[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8   buffer[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
 } large_managed_buffer_t;
 
 typedef struct {
@@ -312,6 +338,15 @@ typedef struct {
   // Register for the retry times when receive "BUSY" Error response (requester only)
   //
   uint8                           retry_times;
+
+  //
+  // fragment handling
+  //
+  uint8                           last_spdm_fragment_encapsulated_request[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
+  uintn                           last_spdm_fragment_encapsulated_request_size;
+  uint8                           last_spdm_fragment_encapsulated_response[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
+  uintn                           last_spdm_fragment_encapsulated_response_size;
+  uintn                           last_spdm_fragment_encapsulated_response_sent_size;
 } spdm_context_t;
 
 /**
@@ -759,7 +794,7 @@ spdm_verify_key_exchange_rsp_signature (
   IN spdm_context_t          *spdm_context,
   IN spdm_session_info_t            *session_info,
   IN void                         *sign_data,
-  IN intn                         sign_data_size
+  IN uintn                        sign_data_size
   );
 
 /**
@@ -831,7 +866,7 @@ spdm_verify_finish_req_signature (
   IN spdm_context_t          *spdm_context,
   IN spdm_session_info_t            *session_info,
   IN void                         *sign_data,
-  IN intn                         sign_data_size
+  IN uintn                        sign_data_size
   );
 
 /**

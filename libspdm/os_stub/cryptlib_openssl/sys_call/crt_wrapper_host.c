@@ -116,3 +116,5 @@ gid_t getegid (void)
 }
 
 int errno = 0;
+
+FILE *stderr = NULL;

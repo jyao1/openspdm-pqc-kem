@@ -228,7 +228,7 @@ spdm_requester_key_exchange_test_receive_message (
     m_local_buffer_size += ((uintn)ptr - (uintn)spdm_response);
     DEBUG((DEBUG_INFO, "m_local_buffer_size (0x%x):\n", m_local_buffer_size));
     internal_dump_hex (m_local_buffer, m_local_buffer_size);
-    init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+    init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
     cert_buffer = (uint8 *)data + sizeof(spdm_cert_chain_t) + hash_size;
     cert_buffer_size = data_size - (sizeof(spdm_cert_chain_t) + hash_size);
     spdm_hash_all (m_use_hash_algo, cert_buffer, cert_buffer_size, cert_buffer_hash);
@@ -334,7 +334,7 @@ spdm_requester_key_exchange_test_receive_message (
     m_local_buffer_size += ((uintn)ptr - (uintn)spdm_response);
     DEBUG((DEBUG_INFO, "m_local_buffer_size (0x%x):\n", m_local_buffer_size));
     internal_dump_hex (m_local_buffer, m_local_buffer_size);
-    init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+    init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
     cert_buffer = (uint8 *)data + sizeof(spdm_cert_chain_t) + hash_size;
     cert_buffer_size = data_size - (sizeof(spdm_cert_chain_t) + hash_size);
     spdm_hash_all (m_use_hash_algo, cert_buffer, cert_buffer_size, cert_buffer_hash);
@@ -478,7 +478,7 @@ spdm_requester_key_exchange_test_receive_message (
       m_local_buffer_size += ((uintn)ptr - (uintn)spdm_response);
       DEBUG((DEBUG_INFO, "m_local_buffer_size (0x%x):\n", m_local_buffer_size));
       internal_dump_hex (m_local_buffer, m_local_buffer_size);
-      init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+      init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
       cert_buffer = (uint8 *)data + sizeof(spdm_cert_chain_t) + hash_size;
       cert_buffer_size = data_size - (sizeof(spdm_cert_chain_t) + hash_size);
       spdm_hash_all (m_use_hash_algo, cert_buffer, cert_buffer_size, cert_buffer_hash);
@@ -631,7 +631,7 @@ spdm_requester_key_exchange_test_receive_message (
       m_local_buffer_size += ((uintn)ptr - (uintn)spdm_response);
       DEBUG((DEBUG_INFO, "m_local_buffer_size (0x%x):\n", m_local_buffer_size));
       internal_dump_hex (m_local_buffer, m_local_buffer_size);
-      init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+      init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
       cert_buffer = (uint8 *)data + sizeof(spdm_cert_chain_t) + hash_size;
       cert_buffer_size = data_size - (sizeof(spdm_cert_chain_t) + hash_size);
       spdm_hash_all (m_use_hash_algo, cert_buffer, cert_buffer_size, cert_buffer_hash);

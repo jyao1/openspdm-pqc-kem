@@ -198,7 +198,7 @@ spdm_requester_psk_exchange_test_receive_message (
     m_local_buffer_size += ((uintn)ptr - (uintn)spdm_response);
     DEBUG((DEBUG_INFO, "m_local_buffer_size (0x%x):\n", m_local_buffer_size));
     internal_dump_hex (m_local_buffer, m_local_buffer_size);
-    init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+    init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
     read_responder_public_certificate_chain (m_use_hash_algo, m_use_asym_algo, &data, &data_size, NULL, NULL);
     cert_buffer = (uint8 *)data + sizeof(spdm_cert_chain_t) + hash_size;
     cert_buffer_size = data_size - (sizeof(spdm_cert_chain_t) + hash_size);
@@ -278,7 +278,7 @@ spdm_requester_psk_exchange_test_receive_message (
     m_local_buffer_size += ((uintn)ptr - (uintn)spdm_response);
     DEBUG((DEBUG_INFO, "m_local_buffer_size (0x%x):\n", m_local_buffer_size));
     internal_dump_hex (m_local_buffer, m_local_buffer_size);
-    init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+    init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
     read_responder_public_certificate_chain (m_use_hash_algo, m_use_asym_algo, &data, &data_size, NULL, NULL);
     cert_buffer = (uint8 *)data + sizeof(spdm_cert_chain_t) + hash_size;
     cert_buffer_size = data_size - (sizeof(spdm_cert_chain_t) + hash_size);
@@ -396,7 +396,7 @@ spdm_requester_psk_exchange_test_receive_message (
       m_local_buffer_size += ((uintn)ptr - (uintn)spdm_response);
       DEBUG((DEBUG_INFO, "m_local_buffer_size (0x%x):\n", m_local_buffer_size));
       internal_dump_hex (m_local_buffer, m_local_buffer_size);
-      init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+      init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
       read_responder_public_certificate_chain (m_use_hash_algo, m_use_asym_algo, &data, &data_size, NULL, NULL);
       cert_buffer = (uint8 *)data + sizeof(spdm_cert_chain_t) + hash_size;
       cert_buffer_size = data_size - (sizeof(spdm_cert_chain_t) + hash_size);
@@ -523,7 +523,7 @@ spdm_requester_psk_exchange_test_receive_message (
       m_local_buffer_size += ((uintn)ptr - (uintn)spdm_response);
       DEBUG((DEBUG_INFO, "m_local_buffer_size (0x%x):\n", m_local_buffer_size));
       internal_dump_hex (m_local_buffer, m_local_buffer_size);
-      init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+      init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
       read_responder_public_certificate_chain (m_use_hash_algo, m_use_asym_algo, &data, &data_size, NULL, NULL);
       cert_buffer = (uint8 *)data + sizeof(spdm_cert_chain_t) + hash_size;
       cert_buffer_size = data_size - (sizeof(spdm_cert_chain_t) + hash_size);

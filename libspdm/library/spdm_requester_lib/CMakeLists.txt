@@ -18,6 +18,7 @@ SET(src_spdm_requester_lib
     encap_request.c
     end_session.c
     finish.c
+    fragment_request.c
     get_capabilities.c
     get_certificate.c
     get_digests.c

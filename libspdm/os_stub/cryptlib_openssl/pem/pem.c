@@ -401,3 +401,95 @@ done:
 
   return status;
 }
+
+boolean
+is_pqc_hybrid_pkey_type (
+  IN int pkey_type
+  );
+
+/**
+  Retrieve the PQC Private key from the password-protected PEM key data.
+
+  @param[in]  pem_data      Pointer to the PEM-encoded key data to be retrieved.
+  @param[in]  pem_size      size of the PEM key data in bytes.
+  @param[in]  password     NULL-terminated passphrase used for encrypted PEM key data.
+  @param[out] pqc_hybrid_context   Pointer to new-generated PQC context which contain the retrieved
+                           PQC private key component. Use pqc_hybrid_free() function to free the
+                           resource.
+
+  If pem_data is NULL, then return FALSE.
+  If pqc_hybrid_context is NULL, then return FALSE.
+
+  @retval  TRUE   PQC Private key was retrieved successfully.
+  @retval  FALSE  Invalid PEM key data or incorrect password.
+
+**/
+boolean
+pqc_hybrid_get_private_key_from_pem (
+  IN   const uint8  *pem_data,
+  IN   uintn        pem_size,
+  IN   const char8  *password,
+  OUT  void         **pqc_hybrid_context
+  )
+{
+  boolean  status;
+  EVP_PKEY *pkey;
+  BIO      *pem_bio;
+
+  //
+  // Check input parameters.
+  //
+  if (pem_data == NULL || pqc_hybrid_context == NULL || pem_size > INT_MAX) {
+    return FALSE;
+  }
+
+  //
+  // Add possible block-cipher descriptor for PEM data decryption.
+  // NOTE: Only support most popular ciphers AES for the encrypted PEM.
+  //
+  if (EVP_add_cipher (EVP_aes_128_cbc ()) == 0) {
+    return FALSE;
+  }
+  if (EVP_add_cipher (EVP_aes_192_cbc ()) == 0) {
+    return FALSE;
+  }
+  if (EVP_add_cipher (EVP_aes_256_cbc ()) == 0) {
+    return FALSE;
+  }
+
+  status = FALSE;
+
+  //
+  // Read encrypted PEM data.
+  //
+  pem_bio = BIO_new (BIO_s_mem ());
+  if (pem_bio == NULL) {
+    goto done;
+  }
+
+  if (BIO_write (pem_bio, pem_data, (int) pem_size) <= 0) {
+    goto done;
+  }
+
+  //
+  // Retrieve PQC hybrid Private key from encrypted PEM data.
+  //
+  pkey = PEM_read_bio_PrivateKey (pem_bio, NULL, (pem_password_cb *) &PasswordCallback, (void *) password);
+  if (pkey == NULL) {
+    goto done;
+  }
+  if (!is_pqc_hybrid_pkey_type (EVP_PKEY_id (pkey))) {
+    goto done;
+  }
+
+  *pqc_hybrid_context = pkey;
+  status = TRUE;
+
+done:
+  //
+  // Release Resources.
+  //
+  BIO_free (pem_bio);
+
+  return status;
+}

@@ -49,6 +49,10 @@ print_usage (
   printf ("   [--dhe FFDHE_2048|FFDHE_3072|FFDHE_4096|SECP_256_R1|SECP_384_R1|SECP_521_R1]\n");
   printf ("   [--aead AES_128_GCM|AES_256_GCM|CHACHA20_POLY1305]\n");
   printf ("   [--key_schedule HMAC_HASH]\n");
+  printf ("   [--pqc_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|RAINBOW_{I,III,V}_{CLASSIC,CIRCUMZENITHAL,COMPRESSED}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}|PICNIC{3*}_L{1,3,5}_{FS,UR,FULL}]\n");
+  printf ("   [--pqc_req_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|RAINBOW_{I,III,V}_{CLASSIC,CIRCUMZENITHAL,COMPRESSED}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}|PICNIC{3*}_L{1,3,5}_{FS,UR,FULL}]\n");
+  printf ("   [--pqc_kem BIKE1_{L1,L3}_{CPA,FO}|CLASSIC_MCELIECE_{348864,460896,6688128,6960119,8192128}{F*}|HQC_{128,192,256}|KYBER_{512,768,1024}{_90S*}|NTRU_{HPS_2048_{509,677,821},HRSS_701}|{NTRULPR,SNTRUP}{653,761,857}|{LIGHT,FIRE,*}SABER_KEM|FRODOKEM_{640,976,1344}_{AES,SHAKE}|SI{DH,KE}_P{434,503,610,751}{_COMPRESSED*}]\n");
+  printf ("   [--pqc_pub_key_mode RAW|CERT]\n");
   printf ("   [--basic_mut_auth NO|BASIC]\n");
   printf ("   [--mut_auth NO|WO_ENCAP|W_ENCAP|DIGESTS]\n");
   printf ("   [--meas_sum NO|TCB|ALL]\n");
@@ -78,8 +82,13 @@ print_usage (
   printf ("   [--dhe] is DHE algorithm. By default, SECP_384_R1,SECP_256_R1,FFDHE_3072,FFDHE_2048 is used.\n");
   printf ("   [--aead] is AEAD algorithm. By default, AES_256_GCM,CHACHA20_POLY1305 is used.\n");
   printf ("   [--key_schedule] is key schedule algorithm. By default, HMAC_HASH is used.\n");
+  printf ("   [--pqc_sig] is PQC sigature algorithm. By default, FALCON_1024,SPHINCS_{HARAKA,SHA256,SHAKE256}_128F_ROBUST is used.\n");
+  printf ("   [--pqc_req_sig] is PQC requester sigature algorithm. By default, FALCON_512 is used.\n");
+  printf ("   [--pqc_kem] is PQC key exchange algorithm. By default, KYBER_512,FRODOKEM_640_AES is used.\n");
   printf ("           Above algorithms also support multiple flags. Please use ',' for them.\n");
   printf ("           SHA3 is not supported so far.\n");
+  printf ("           For pqc CERT mode, only a limited set of hybrid algorithm can be used. Please refer to readme.\n");
+  printf ("   [--pqc_pub_key_mode] RAW means separated binary public key. CERT means hybrid X509 certificate. By default, RAW is used.\n");
   printf ("   [--basic_mut_auth] is the basic mutual authentication policy. BASIC is used in CHALLENGE_AUTH. By default, BASIC is used.\n");
   printf ("   [--mut_auth] is the mutual authentication policy. WO_ENCAP, W_ENCAP or DIGESTS is used in KEY_EXCHANGE_RSP. By default, W_ENCAP is used.\n");
   printf ("   [--meas_sum] is the measurment summary hash type in CHALLENGE_AUTH, KEY_EXCHANGE_RSP and PSK_EXCHANGE_RSP. By default, ALL is used.\n");
@@ -117,6 +126,7 @@ print_usage (
   printf ("           HEARTBEAT means to send HEARTBEAT in session.\n");
   printf ("           MEAS means send GET_MEASUREMENT command in session.\n");
   printf ("   [--pcap] is used to generate PCAP dump file for offline analysis.\n");
+  fprintf (stdout, "\n");
 }
 
 typedef struct {
@@ -226,6 +236,154 @@ value_string_entry_t  m_aead_value_string_table[] = {
 
 value_string_entry_t  m_key_schedule_value_string_table[] = {
   {SPDM_ALGORITHMS_KEY_SCHEDULE_HMAC_HASH,        "HMAC_HASH"},
+};
+
+value_string_entry_t  m_pqc_sig_value_string_table[] = {
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_2,                 "DILITHIUM_2"},
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_3,                 "DILITHIUM_3"},
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_5,                 "DILITHIUM_5"},
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_2_AES,             "DILITHIUM_2_AES"},
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_3_AES,             "DILITHIUM_3_AES"},
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_5_AES,             "DILITHIUM_5_AES"},
+
+  {PQC_CRYPTO_SIG_NID_FALCON_512,                  "FALCON_512"},
+  {PQC_CRYPTO_SIG_NID_FALCON_1024,                 "FALCON_1024"},
+
+  {PQC_CRYPTO_SIG_NID_RAINBOW_I_CLASSIC,           "RAINBOW_I_CLASSIC"},
+  {PQC_CRYPTO_SIG_NID_RAINBOW_I_CIRCUMZENITHAL,    "RAINBOW_I_CIRCUMZENITHAL"},
+  {PQC_CRYPTO_SIG_NID_RAINBOW_I_COMPRESSED,        "RAINBOW_I_COMPRESSED"},
+  {PQC_CRYPTO_SIG_NID_RAINBOW_III_CLASSIC,         "RAINBOW_III_CLASSIC"},
+  {PQC_CRYPTO_SIG_NID_RAINBOW_III_CIRCUMZENITHAL,  "RAINBOW_III_CIRCUMZENITHAL"},
+  {PQC_CRYPTO_SIG_NID_RAINBOW_III_COMPRESSED,      "RAINBOW_III_COMPRESSED"},
+  {PQC_CRYPTO_SIG_NID_RAINBOW_V_CLASSIC,           "RAINBOW_V_CLASSIC"},
+  {PQC_CRYPTO_SIG_NID_RAINBOW_V_CIRCUMZENITHAL,    "RAINBOW_V_CIRCUMZENITHAL"},
+  {PQC_CRYPTO_SIG_NID_RAINBOW_V_COMPRESSED,        "RAINBOW_V_COMPRESSED"},
+
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_128F_ROBUST,  "SPHINCS_HARAKA_128F_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_128F_SIMPLE,  "SPHINCS_HARAKA_128F_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_128S_ROBUST,  "SPHINCS_HARAKA_128S_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_128S_SIMPLE,  "SPHINCS_HARAKA_128S_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_192F_ROBUST,  "SPHINCS_HARAKA_192F_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_192F_SIMPLE,  "SPHINCS_HARAKA_192F_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_192S_ROBUST,  "SPHINCS_HARAKA_192S_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_192S_SIMPLE,  "SPHINCS_HARAKA_192S_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_256F_ROBUST,  "SPHINCS_HARAKA_256F_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_256F_SIMPLE,  "SPHINCS_HARAKA_256F_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_256S_ROBUST,  "SPHINCS_HARAKA_256S_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_256S_SIMPLE,  "SPHINCS_HARAKA_256S_SIMPLE"},
+
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_128F_ROBUST,  "SPHINCS_SHA256_128F_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_128F_SIMPLE,  "SPHINCS_SHA256_128F_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_128S_ROBUST,  "SPHINCS_SHA256_128S_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_128S_SIMPLE,  "SPHINCS_SHA256_128S_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_192F_ROBUST,  "SPHINCS_SHA256_192F_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_192F_SIMPLE,  "SPHINCS_SHA256_192F_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_192S_ROBUST,  "SPHINCS_SHA256_192S_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_192S_SIMPLE,  "SPHINCS_SHA256_192S_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_256F_ROBUST,  "SPHINCS_SHA256_256F_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_256F_SIMPLE,  "SPHINCS_SHA256_256F_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_256S_ROBUST,  "SPHINCS_SHA256_256S_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_256S_SIMPLE,  "SPHINCS_SHA256_256S_SIMPLE"},
+
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_128F_ROBUST,  "SPHINCS_SHAKE256_128F_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_128F_SIMPLE,  "SPHINCS_SHAKE256_128F_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_128S_ROBUST,  "SPHINCS_SHAKE256_128S_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_128S_SIMPLE,  "SPHINCS_SHAKE256_128S_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_192F_ROBUST,  "SPHINCS_SHAKE256_192F_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_192F_SIMPLE,  "SPHINCS_SHAKE256_192F_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_192S_ROBUST,  "SPHINCS_SHAKE256_192S_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_192S_SIMPLE,  "SPHINCS_SHAKE256_192S_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_256F_ROBUST,  "SPHINCS_SHAKE256_256F_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_256F_SIMPLE,  "SPHINCS_SHAKE256_256F_SIMPLE"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_256S_ROBUST,  "SPHINCS_SHAKE256_256S_ROBUST"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_256S_SIMPLE,  "SPHINCS_SHAKE256_256S_SIMPLE"},
+
+  {PQC_CRYPTO_SIG_NID_PICNIC_L1_FS,                "PICNIC_L1_FS"},
+  {PQC_CRYPTO_SIG_NID_PICNIC_L1_UR,                "PICNIC_L1_UR"},
+  {PQC_CRYPTO_SIG_NID_PICNIC_L1_FULL,              "PICNIC_L1_FULL"},
+  {PQC_CRYPTO_SIG_NID_PICNIC_L3_FS,                "PICNIC_L3_FS"},
+  {PQC_CRYPTO_SIG_NID_PICNIC_L3_UR,                "PICNIC_L3_UR"},
+  {PQC_CRYPTO_SIG_NID_PICNIC_L3_FULL,              "PICNIC_L3_FULL"},
+  {PQC_CRYPTO_SIG_NID_PICNIC_L5_FS,                "PICNIC_L5_FS"},
+  {PQC_CRYPTO_SIG_NID_PICNIC_L5_UR,                "PICNIC_L5_UR"},
+  {PQC_CRYPTO_SIG_NID_PICNIC_L5_FULL,              "PICNIC_L5_FULL"},
+  {PQC_CRYPTO_SIG_NID_PICNIC3_L1,                  "PICNIC3_L1"},
+  {PQC_CRYPTO_SIG_NID_PICNIC3_L3,                  "PICNIC3_L3"},
+  {PQC_CRYPTO_SIG_NID_PICNIC3_L5,                  "PICNIC3_L5"},
+};
+
+value_string_entry_t  m_pqc_kem_value_string_table[] = {
+  {PQC_CRYPTO_KEM_NID_BIKE1_L1_CPA,                 "BIKE1_L1_CPA"},
+  {PQC_CRYPTO_KEM_NID_BIKE1_L3_CPA,                 "BIKE1_L3_CPA"},
+  {PQC_CRYPTO_KEM_NID_BIKE1_L1_FO,                  "BIKE1_L1_FO"},
+  {PQC_CRYPTO_KEM_NID_BIKE1_L3_FO,                  "BIKE1_L3_FO"},
+
+  {PQC_CRYPTO_KEM_NID_CLASSIC_MCELIECE_348864,      "CLASSIC_MCELIECE_348864"},
+  {PQC_CRYPTO_KEM_NID_CLASSIC_MCELIECE_348864F,     "CLASSIC_MCELIECE_348864F"},
+  {PQC_CRYPTO_KEM_NID_CLASSIC_MCELIECE_460896,      "CLASSIC_MCELIECE_460896"},
+  {PQC_CRYPTO_KEM_NID_CLASSIC_MCELIECE_460896F,     "CLASSIC_MCELIECE_460896F"},
+  {PQC_CRYPTO_KEM_NID_CLASSIC_MCELIECE_6688128,     "CLASSIC_MCELIECE_6688128"},
+  {PQC_CRYPTO_KEM_NID_CLASSIC_MCELIECE_6688128F,    "CLASSIC_MCELIECE_6688128F"},
+  {PQC_CRYPTO_KEM_NID_CLASSIC_MCELIECE_6960119,     "CLASSIC_MCELIECE_6960119"},
+  {PQC_CRYPTO_KEM_NID_CLASSIC_MCELIECE_6960119F,    "CLASSIC_MCELIECE_6960119F"},
+  {PQC_CRYPTO_KEM_NID_CLASSIC_MCELIECE_8192128,     "CLASSIC_MCELIECE_8192128"},
+  {PQC_CRYPTO_KEM_NID_CLASSIC_MCELIECE_8192128F,    "CLASSIC_MCELIECE_8192128F"},
+
+  {PQC_CRYPTO_KEM_NID_HQC_128,                      "HQC_128"},
+  {PQC_CRYPTO_KEM_NID_HQC_192,                      "HQC_192"},
+  {PQC_CRYPTO_KEM_NID_HQC_256,                      "HQC_256"},
+
+  {PQC_CRYPTO_KEM_NID_KYBER_512,                    "KYBER_512"},
+  {PQC_CRYPTO_KEM_NID_KYBER_768,                    "KYBER_768"},
+  {PQC_CRYPTO_KEM_NID_KYBER_1024,                   "KYBER_1024"},
+  {PQC_CRYPTO_KEM_NID_KYBER_512_90S,                "KYBER_512_90S"},
+  {PQC_CRYPTO_KEM_NID_KYBER_768_90S,                "KYBER_768_90S"},
+  {PQC_CRYPTO_KEM_NID_KYBER_1024_90S,               "KYBER_1024_90S"},
+
+  {PQC_CRYPTO_KEM_NID_NTRU_HPS_2048_509,            "NTRU_HPS_2048_509"},
+  {PQC_CRYPTO_KEM_NID_NTRU_HPS_2048_677,            "NTRU_HPS_2048_677"},
+  {PQC_CRYPTO_KEM_NID_NTRU_HPS_2048_821,            "NTRU_HPS_2048_821"},
+  {PQC_CRYPTO_KEM_NID_NTRU_HRSS_701,                "NTRU_HRSS_701"},
+
+  {PQC_CRYPTO_KEM_NID_NTRULPR653,                   "NTRULPR653"},
+  {PQC_CRYPTO_KEM_NID_NTRULPR761,                   "NTRULPR761"},
+  {PQC_CRYPTO_KEM_NID_NTRULPR857,                   "NTRULPR857"},
+  {PQC_CRYPTO_KEM_NID_SNTRUP653,                    "SNTRUP653"},
+  {PQC_CRYPTO_KEM_NID_SNTRUP761,                    "SNTRUP761"},
+  {PQC_CRYPTO_KEM_NID_SNTRUP857,                    "SNTRUP857"},
+
+  {PQC_CRYPTO_KEM_NID_LIGHTSABER_KEM,               "LIGHTSABER_KEM"},
+  {PQC_CRYPTO_KEM_NID_SABER_KEM,                    "SABER_KEM"},
+  {PQC_CRYPTO_KEM_NID_FIRESABER_KEM,                "FIRESABER_KEM"},
+
+  {PQC_CRYPTO_KEM_NID_FRODOKEM_640_AES,             "FRODOKEM_640_AES"},
+  {PQC_CRYPTO_KEM_NID_FRODOKEM_640_SHAKE,           "FRODOKEM_640_SHAKE"},
+  {PQC_CRYPTO_KEM_NID_FRODOKEM_976_AES,             "FRODOKEM_976_AES"},
+  {PQC_CRYPTO_KEM_NID_FRODOKEM_976_SHAKE,           "FRODOKEM_976_SHAKE"},
+  {PQC_CRYPTO_KEM_NID_FRODOKEM_1344_AES,            "FRODOKEM_1344_AES"},
+  {PQC_CRYPTO_KEM_NID_FRODOKEM_1344_SHAKE,          "FRODOKEM_1344_SHAKE"},
+
+  {PQC_CRYPTO_KEM_NID_SIDH_P434,                    "SIDH_P434"},
+  {PQC_CRYPTO_KEM_NID_SIDH_P434_COMPRESSED,         "SIDH_P434_COMPRESSED"},
+  {PQC_CRYPTO_KEM_NID_SIDH_P503,                    "SIDH_P503"},
+  {PQC_CRYPTO_KEM_NID_SIDH_P503_COMPRESSED,         "SIDH_P503_COMPRESSED"},
+  {PQC_CRYPTO_KEM_NID_SIDH_P610,                    "SIDH_P610"},
+  {PQC_CRYPTO_KEM_NID_SIDH_P610_COMPRESSED,         "SIDH_P610_COMPRESSED"},
+  {PQC_CRYPTO_KEM_NID_SIDH_P751,                    "SIDH_P751"},
+  {PQC_CRYPTO_KEM_NID_SIDH_P751_COMPRESSED,         "SIDH_P751_COMPRESSED"},
+  {PQC_CRYPTO_KEM_NID_SIKE_P434,                    "SIKE_P434"},
+  {PQC_CRYPTO_KEM_NID_SIKE_P434_COMPRESSED,         "SIKE_P434_COMPRESSED"},
+  {PQC_CRYPTO_KEM_NID_SIKE_P503,                    "SIKE_P503"},
+  {PQC_CRYPTO_KEM_NID_SIKE_P503_COMPRESSED,         "SIKE_P503_COMPRESSED"},
+  {PQC_CRYPTO_KEM_NID_SIKE_P610,                    "SIKE_P610"},
+  {PQC_CRYPTO_KEM_NID_SIKE_P610_COMPRESSED,         "SIKE_P610_COMPRESSED"},
+  {PQC_CRYPTO_KEM_NID_SIKE_P751,                    "SIKE_P751"},
+  {PQC_CRYPTO_KEM_NID_SIKE_P751_COMPRESSED,         "SIKE_P751_COMPRESSED"},
+};
+
+value_string_entry_t  m_pqc_pub_key_mode_string_table[] = {
+  {SPDM_DATA_PUBLIC_KEY_MODE_RAW,    "RAW"},
+  {SPDM_DATA_PUBLIC_KEY_MODE_CERT,   "CERT"},
 };
 
 value_string_entry_t  m_basic_mut_auth_policy_string_table[] = {
@@ -355,6 +513,51 @@ get_flags_from_name (
     flag_name = strtok (NULL, ",");
   }
   if (*flags == 0) {
+    ret = FALSE;
+  } else {
+    ret = TRUE;
+  }
+done:
+  free (local_name);
+  return ret;
+}
+
+boolean
+get_pqc_algo_flags_from_name (
+  IN value_string_entry_t  *table,
+  IN uintn               entry_count,
+  IN char8               *name,
+  OUT pqc_algo_t         pqc_algo_flags
+  )
+{
+  uint32  value;
+  char8   *flag_name;
+  char8   *local_name;
+  boolean ret;
+  pqc_algo_t  this_pqc_algo;
+
+  local_name = (void *)malloc (strlen(name) + 1);
+  if (local_name == NULL) {
+    return FALSE;
+  }
+  strcpy (local_name, name);
+
+  //
+  // name = Flag1,Flag2,...,FlagN
+  //
+  zero_mem (pqc_algo_flags, sizeof(pqc_algo_t));
+  flag_name = strtok (local_name, ",");
+  while (flag_name != NULL) {
+    if (!get_value_from_name (table, entry_count, flag_name, &value)) {
+      printf ("unsupported flag - %s\n", flag_name);
+      ret = FALSE;
+      goto done;
+    }
+    spdm_get_pqc_algo_from_nid (value, this_pqc_algo);
+    spdm_pqc_algo_or (pqc_algo_flags, this_pqc_algo, pqc_algo_flags);
+    flag_name = strtok (NULL, ",");
+  }
+  if (spdm_pqc_algo_is_zero (pqc_algo_flags)) {
     ret = FALSE;
   } else {
     ret = TRUE;
@@ -623,6 +826,84 @@ process_args (
         continue;
       } else {
         printf ("invalid --key_schedule\n");
+        print_usage (program_name);
+        exit (0);
+      }
+    }
+
+    if (strcmp (argv[0], "--pqc_sig") == 0) {
+      if (argc >= 2) {
+        if (!get_pqc_algo_flags_from_name (m_pqc_sig_value_string_table, ARRAY_SIZE(m_pqc_sig_value_string_table), argv[1], m_support_pqc_sig_algo)) {
+          printf ("invalid --pqc_sig %s\n", argv[1]);
+          print_usage (program_name);
+          exit (0);
+        }
+        printf ("pqc_sig - ");
+        dump_hex_str (m_support_pqc_sig_algo, sizeof(pqc_algo_t));
+        printf ("\n");
+        argc -= 2;
+        argv += 2;
+        continue;
+      } else {
+        printf ("invalid --pqc_sig\n");
+        print_usage (program_name);
+        exit (0);
+      }
+    }
+
+    if (strcmp (argv[0], "--pqc_req_sig") == 0) {
+      if (argc >= 2) {
+        if (!get_pqc_algo_flags_from_name (m_pqc_sig_value_string_table, ARRAY_SIZE(m_pqc_sig_value_string_table), argv[1], m_support_pqc_req_sig_algo)) {
+          printf ("invalid --pqc_req_sig %s\n", argv[1]);
+          print_usage (program_name);
+          exit (0);
+        }
+        printf ("pqc_req_sig - ");
+        dump_hex_str (m_support_pqc_req_sig_algo, sizeof(pqc_algo_t));
+        printf ("\n");
+        argc -= 2;
+        argv += 2;
+        continue;
+      } else {
+        printf ("invalid --pqc_req_sig\n");
+        print_usage (program_name);
+        exit (0);
+      }
+    }
+
+    if (strcmp (argv[0], "--pqc_kem") == 0) {
+      if (argc >= 2) {
+        if (!get_pqc_algo_flags_from_name (m_pqc_kem_value_string_table, ARRAY_SIZE(m_pqc_kem_value_string_table), argv[1], m_support_pqc_kem_algo)) {
+          printf ("invalid --pqc_kem %s\n", argv[1]);
+          print_usage (program_name);
+          exit (0);
+        }
+        printf ("pqc_kem - ");
+        dump_hex_str (m_support_pqc_kem_algo, sizeof(pqc_algo_t));
+        printf ("\n");
+        argc -= 2;
+        argv += 2;
+        continue;
+      } else {
+        printf ("invalid --pqc_kem\n");
+        print_usage (program_name);
+        exit (0);
+      }
+    }
+
+    if (strcmp (argv[0], "--pqc_pub_key_mode") == 0) {
+      if (argc >= 2) {
+        if (!get_value_from_name (m_pqc_pub_key_mode_string_table, ARRAY_SIZE(m_pqc_pub_key_mode_string_table), argv[1], &m_pqc_pub_key_mode)) {
+          printf ("invalid --pqc_pub_key_mode %s\n", argv[1]);
+          print_usage (program_name);
+          exit (0);
+        }
+        printf ("pqc_pub_key_mode - 0x%08x\n", m_pqc_pub_key_mode);
+        argc -= 2;
+        argv += 2;
+        continue;
+      } else {
+        printf ("invalid --pqc_pub_key_mode\n");
         print_usage (program_name);
         exit (0);
       }

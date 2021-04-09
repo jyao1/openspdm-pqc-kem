@@ -38,12 +38,14 @@ spdm_get_response_certificate (
   spdm_get_certificate_request_t  *spdm_request;
   uintn                         spdm_request_size;
   spdm_certificate_response_t     *spdm_response;
-  uint16                        Offset;
-  uint16                        length;
+  uint32                        Offset;
+  uint32                        length;
   uintn                         remainder_length;
   uint8                         slot_id;
   spdm_context_t           *spdm_context;
   return_status                 status;
+  void                          *local_cert_chain;
+  uintn                          local_cert_chain_size;
 
   spdm_context = context;
   spdm_request = request;
@@ -76,15 +78,18 @@ spdm_get_response_certificate (
     return RETURN_SUCCESS;
   }
 
-  if (spdm_context->local_context.local_cert_chain_provision == NULL) {
-    spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_UNSUPPORTED_REQUEST, SPDM_GET_CERTIFICATE, response_size, response);
-    return RETURN_SUCCESS;
-  }
-
   slot_id = spdm_request->header.param1;
 
   if (slot_id >= spdm_context->local_context.slot_count) {
     spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
+    return RETURN_SUCCESS;
+  }
+
+  local_cert_chain = spdm_context->local_context.local_cert_chain_provision[slot_id];
+  local_cert_chain_size = spdm_context->local_context.local_cert_chain_provision_size[slot_id];
+
+  if (local_cert_chain == NULL) {
+    spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_UNSUPPORTED_REQUEST, SPDM_GET_CERTIFICATE, response_size, response);
     return RETURN_SUCCESS;
   }
 
@@ -94,15 +99,15 @@ spdm_get_response_certificate (
     length = MAX_SPDM_CERT_CHAIN_BLOCK_LEN;
   }
   
-  if (Offset >= spdm_context->local_context.local_cert_chain_provision_size[slot_id]) {
+  if (Offset >= local_cert_chain_size) {
     spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
     return RETURN_SUCCESS;
   }
 
-  if ((uintn)(Offset + length) > spdm_context->local_context.local_cert_chain_provision_size[slot_id]) {
-    length = (uint16)(spdm_context->local_context.local_cert_chain_provision_size[slot_id] - Offset);
+  if ((uintn)(Offset + length) > local_cert_chain_size) {
+    length = (uint32)(local_cert_chain_size - Offset);
   }
-  remainder_length = spdm_context->local_context.local_cert_chain_provision_size[slot_id] - (length + Offset);
+  remainder_length = local_cert_chain_size - (length + Offset);
 
   ASSERT (*response_size >= sizeof(spdm_certificate_response_t) + length);
   *response_size = sizeof(spdm_certificate_response_t) + length;
@@ -117,9 +122,11 @@ spdm_get_response_certificate (
   spdm_response->header.request_response_code = SPDM_CERTIFICATE;
   spdm_response->header.param1 = slot_id;
   spdm_response->header.param2 = 0;
+  spdm_response->portion_length_reserved = 0;
+  spdm_response->remainder_length_reserved = 0;
   spdm_response->portion_length = length;
-  spdm_response->remainder_length = (uint16)remainder_length;
-  copy_mem (spdm_response + 1, (uint8 *)spdm_context->local_context.local_cert_chain_provision[slot_id] + Offset, length);
+  spdm_response->remainder_length = (uint32)remainder_length;
+  copy_mem (spdm_response + 1, (uint8 *)local_cert_chain + Offset, length);
   //
   // Cache
   //

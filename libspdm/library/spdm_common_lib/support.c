@@ -142,12 +142,13 @@ append_managed_buffer (
   }
   ASSERT (buffer != NULL);
   ASSERT (buffer_size != 0);
-  ASSERT ((managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_BUFFER_SIZE) ||
+  ASSERT ((managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE) ||
           (managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_SMALL_BUFFER_SIZE));
   ASSERT (managed_buffer->max_buffer_size >= managed_buffer->buffer_size);
   if (buffer_size > managed_buffer->max_buffer_size - managed_buffer->buffer_size) {
     // Do not ASSERT here, because command processor will append message from external.
     DEBUG ((DEBUG_ERROR, "append_managed_buffer 0x%x fail, rest 0x%x only\n", (uint32)buffer_size, (uint32)(managed_buffer->max_buffer_size - managed_buffer->buffer_size)));
+    ASSERT (FALSE);
     return RETURN_BUFFER_TOO_SMALL;
   }
   ASSERT (buffer_size <= managed_buffer->max_buffer_size - managed_buffer->buffer_size);
@@ -180,7 +181,7 @@ shrink_managed_buffer (
     return RETURN_SUCCESS;
   }
   ASSERT (buffer_size != 0);
-  ASSERT ((managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_BUFFER_SIZE) ||
+  ASSERT ((managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE) ||
           (managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_SMALL_BUFFER_SIZE));
   ASSERT (managed_buffer->max_buffer_size >= managed_buffer->buffer_size);
   if (buffer_size > managed_buffer->buffer_size) {
@@ -209,7 +210,7 @@ reset_managed_buffer (
 
   managed_buffer = m_buffer;
 
-  ASSERT ((managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_BUFFER_SIZE) ||
+  ASSERT ((managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE) ||
           (managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_SMALL_BUFFER_SIZE));
   managed_buffer->buffer_size = 0;
   zero_mem (managed_buffer + 1, managed_buffer->max_buffer_size);
@@ -231,7 +232,7 @@ get_managed_buffer_size (
 
   managed_buffer = m_buffer;
 
-  ASSERT ((managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_BUFFER_SIZE) ||
+  ASSERT ((managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE) ||
           (managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_SMALL_BUFFER_SIZE));
   return managed_buffer->buffer_size;
 }
@@ -252,7 +253,7 @@ get_managed_buffer (
 
   managed_buffer = m_buffer;
 
-  ASSERT ((managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_BUFFER_SIZE) ||
+  ASSERT ((managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE) ||
           (managed_buffer->max_buffer_size == MAX_SPDM_MESSAGE_SMALL_BUFFER_SIZE));
   return (managed_buffer + 1);
 }
@@ -273,7 +274,7 @@ init_managed_buffer (
 
   managed_buffer = m_buffer;
 
-  ASSERT ((max_buffer_size == MAX_SPDM_MESSAGE_BUFFER_SIZE) ||
+  ASSERT ((max_buffer_size == MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE) ||
           (max_buffer_size == MAX_SPDM_MESSAGE_SMALL_BUFFER_SIZE));
 
   managed_buffer->max_buffer_size = max_buffer_size;

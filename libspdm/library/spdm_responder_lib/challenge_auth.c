@@ -85,7 +85,9 @@ spdm_get_response_challenge_auth (
     return RETURN_SUCCESS;
   }
 
-  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
+  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
+                   PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                   spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
   measurement_summary_hash_size = spdm_get_measurement_summary_hash_size (spdm_context, FALSE, spdm_request->header.param2);
 

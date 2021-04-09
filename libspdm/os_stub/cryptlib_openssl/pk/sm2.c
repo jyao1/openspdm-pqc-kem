@@ -590,7 +590,6 @@ done:
   return ret_val;
 }
 
-static
 void
 ecc_signature_der_to_bin (
   IN      uint8        *der_signature,
@@ -606,30 +605,35 @@ ecc_signature_der_to_bin (
   uint8                 r_size;
   uint8                 s_size;
   uint8                 half_size;
+  uint8                 offset;
 
   half_size = (uint8)(sig_size / 2);
 
   ASSERT (der_signature[0] == 0x30);
-  ASSERT ((uintn)(der_signature[1] + 2) == der_sig_size);
-  ASSERT (der_signature[2] == 0x02);
-  der_r_size = der_signature[3];
-  ASSERT (der_signature[4 + der_r_size] == 0x02);
-  der_s_size = der_signature[5 + der_r_size];
-  ASSERT (der_sig_size == (uintn)(der_r_size + der_s_size + 6));
+  offset = 0;
+  if (der_signature[1] == 0x81) {
+    offset = 1;
+  }
+  ASSERT ((uintn)(der_signature[offset + 1] + 2 + offset) == der_sig_size);
+  ASSERT (der_signature[offset + 2] == 0x02);
+  der_r_size = der_signature[offset + 3];
+  ASSERT (der_signature[offset + 4 + der_r_size] == 0x02);
+  der_s_size = der_signature[offset + 5 + der_r_size];
+  ASSERT (der_sig_size == (uintn)(der_r_size + der_s_size + 6 + offset));
 
-  if (der_signature[4] != 0) {
+  if (der_signature[offset + 4] != 0) {
     r_size = der_r_size;
-    bn_r = &der_signature[4];
+    bn_r = &der_signature[offset + 4];
   } else {
     r_size = der_r_size - 1;
-    bn_r = &der_signature[5];
+    bn_r = &der_signature[offset + 5];
   }
-  if (der_signature[6 + der_r_size] != 0) {
+  if (der_signature[offset + 6 + der_r_size] != 0) {
     s_size = der_s_size;
-    bn_s = &der_signature[6 + der_r_size];
+    bn_s = &der_signature[offset + 6 + der_r_size];
   } else {
     s_size = der_s_size - 1;
-    bn_s = &der_signature[7 + der_r_size];
+    bn_s = &der_signature[offset + 7 + der_r_size];
   }
   ASSERT (r_size <= half_size && s_size <= half_size);
   zero_mem (signature, sig_size);
@@ -637,7 +641,6 @@ ecc_signature_der_to_bin (
   copy_mem (&signature[half_size + half_size - s_size], bn_s, s_size);
 }
 
-static
 void
 ecc_signature_bin_to_der (
   IN      uint8        *signature,
@@ -655,6 +658,7 @@ ecc_signature_bin_to_der (
   uint8                 s_size;
   uint8                 half_size;
   uint8                 index;
+  uint8                 offset;
 
   half_size = (uint8)(sig_size / 2);
 
@@ -687,24 +691,33 @@ ecc_signature_bin_to_der (
     der_s_size = s_size + 1;
   }
   der_sig_size = der_r_size + der_s_size + 6;
-  ASSERT (der_sig_size <= *der_sig_size_in_out);
-  *der_sig_size_in_out = der_sig_size;
-  zero_mem (der_signature, der_sig_size);
-  der_signature[0] = 0x30;
-  der_signature[1] = (uint8)(der_sig_size - 2);
-  der_signature[2] = 0x02;
-  der_signature[3] = der_r_size;
-  if (bn_r[0] < 0x80) {
-    copy_mem (&der_signature[4], bn_r, r_size);
-  } else {
-    copy_mem (&der_signature[5], bn_r, r_size);
+
+  offset = 0;
+  if (der_sig_size - 2 >= 0x80) {
+    offset = 1;
   }
-  der_signature[4 + der_r_size] = 0x02;
-  der_signature[5 + der_r_size] = der_s_size;
-  if (bn_s[0] < 0x80) {
-    copy_mem (&der_signature[6 + der_r_size], bn_s, s_size);
+
+  ASSERT (der_sig_size + offset <= *der_sig_size_in_out);
+  *der_sig_size_in_out = der_sig_size + offset;
+  zero_mem (der_signature, der_sig_size + offset);
+  der_signature[0] = 0x30;
+  if (offset == 1) {
+    der_signature[1] = 0x81;
+  }
+  der_signature[offset + 1] = (uint8)(der_sig_size - 2);
+  der_signature[offset + 2] = 0x02;
+  der_signature[offset + 3] = der_r_size;
+  if (bn_r[0] < 0x80) {
+    copy_mem (&der_signature[offset + 4], bn_r, r_size);
   } else {
-    copy_mem (&der_signature[7 + der_r_size], bn_s, s_size);
+    copy_mem (&der_signature[offset + 5], bn_r, r_size);
+  }
+  der_signature[offset + 4 + der_r_size] = 0x02;
+  der_signature[offset + 5 + der_r_size] = der_s_size;
+  if (bn_s[0] < 0x80) {
+    copy_mem (&der_signature[offset + 6 + der_r_size], bn_s, s_size);
+  } else {
+    copy_mem (&der_signature[offset + 7 + der_r_size], bn_s, s_size);
   }
 }
 

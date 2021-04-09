@@ -13,6 +13,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <assert.h>
 #include <string.h>
 
@@ -46,6 +47,9 @@ read_responder_private_certificate (
   case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P384:
     file = "ecp384/end_responder.key";
     break;
+  case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P521:
+    file = "ecp521/end_responder.key";
+    break;
   default:
     ASSERT( FALSE);
     return FALSE;
@@ -78,6 +82,9 @@ read_requester_private_certificate (
     break;
   case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P384:
     file = "ecp384/end_requester.key";
+    break;
+  case SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P521:
+    file = "ecp521/end_requester.key";
     break;
   default:
     ASSERT( FALSE);
@@ -403,5 +410,395 @@ spdm_psk_master_secret_hkdf_expand (
   zero_mem (master_secret, hash_size);
 
   return result;
+}
+
+boolean
+read_pqc_private_key (
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  char8                *algo_name;
+  char8                file_name[256];
+  boolean              result;
+
+  algo_name = spdm_get_pqc_sig_name (pqc_sig_algo);
+  ASSERT (algo_name != NULL);
+
+  strcpy (file_name, "pqc/");
+  strcat (file_name, algo_name);
+  strcat (file_name, "_sk.bin");
+
+  result = read_input_file (file_name, data, size);
+  if (!result) {
+    ASSERT (FALSE);
+  }
+
+  return result;
+}
+
+boolean
+read_responder_pqc_private_key (
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  return read_pqc_private_key (pqc_sig_algo, data, size);
+}
+
+boolean
+read_requester_pqc_private_key (
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  return read_pqc_private_key (pqc_sig_algo, data, size);
+}
+
+/**
+  Sign an SPDM message data.
+
+  @param  pqc_req_sig_algo               Indicates the signing algorithm.
+  @param  message                      A pointer to a message to be signed (before hash).
+  @param  message_size                  The size in bytes of the message to be signed.
+  @param  signature                    A pointer to a destination buffer to store the signature.
+  @param  sig_size                      On input, indicates the size in bytes of the destination buffer to store the signature.
+                                       On output, indicates the size in bytes of the signature in the buffer.
+
+  @retval TRUE  signing success.
+  @retval FALSE signing fail.
+**/
+boolean
+spdm_pqc_requester_data_sign (
+  IN      pqc_algo_t   pqc_req_sig_algo,
+  IN      const uint8  *message,
+  IN      uintn        message_size,
+  OUT     uint8        *signature,
+  IN OUT  uintn        *sig_size
+  )
+{
+  void                          *context;
+  void                          *private_key;
+  uintn                         private_key_size;
+  boolean                       result;
+
+  result = read_requester_pqc_private_key (pqc_req_sig_algo, &private_key, &private_key_size);
+  if (!result) {
+    return FALSE;
+  }
+
+  result = spdm_pqc_req_sig_set_private_key (pqc_req_sig_algo, private_key, private_key_size, &context);
+  if (!result) {
+    return FALSE;
+  }
+  result = spdm_pqc_req_sig_sign (
+             pqc_req_sig_algo,
+             context,
+             message,
+             message_size,
+             signature,
+             sig_size
+             );
+  spdm_pqc_req_sig_free (pqc_req_sig_algo, context);
+  zero_mem (private_key, private_key_size);
+  free (private_key);
+
+  return result;
+}
+
+/**
+  Sign an SPDM message data.
+
+  @param  pqc_sig_algo                 Indicates the signing algorithm.
+  @param  message                      A pointer to a message to be signed (before hash).
+  @param  message_size                  The size in bytes of the message to be signed.
+  @param  signature                    A pointer to a destination buffer to store the signature.
+  @param  sig_size                      On input, indicates the size in bytes of the destination buffer to store the signature.
+                                       On output, indicates the size in bytes of the signature in the buffer.
+
+  @retval TRUE  signing success.
+  @retval FALSE signing fail.
+**/
+boolean
+spdm_pqc_responder_data_sign (
+  IN      pqc_algo_t   pqc_sig_algo,
+  IN      const uint8  *message,
+  IN      uintn        message_size,
+  OUT     uint8        *signature,
+  IN OUT  uintn        *sig_size
+  )
+{
+  void                          *context;
+  void                          *private_key;
+  uintn                         private_key_size;
+  boolean                       result;
+
+  result = read_responder_pqc_private_key (pqc_sig_algo, &private_key, &private_key_size);
+  if (!result) {
+    return FALSE;
+  }
+
+  result = spdm_pqc_sig_set_private_key (pqc_sig_algo, private_key, private_key_size, &context);
+  if (!result) {
+    return FALSE;
+  }
+  result = spdm_pqc_sig_sign (
+             pqc_sig_algo,
+             context,
+             message,
+             message_size,
+             signature,
+             sig_size
+             );
+  spdm_pqc_sig_free (pqc_sig_algo, context);
+  zero_mem (private_key, private_key_size);
+  free (private_key);
+
+  return result;
+}
+
+typedef struct {
+  uint32  base_asym_algo;
+  char8   *tradition_name;
+} hybrid_algo_tradition_name_t;
+
+typedef struct {
+  uintn           nid;
+  char8           *pqc_name;
+} hybrid_algo_pqc_name_t;
+
+hybrid_algo_tradition_name_t m_hybrid_algo_tradition_name[] = {
+  {0, ""},
+  {SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_RSASSA_3072, "rsa3072_"},
+  {SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_RSAPSS_3072, "rsa3072_"},
+  {SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P256, "p256_"},
+  {SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P384, "p384_"},
+  {SPDM_ALGORITHMS_BASE_ASYM_ALGO_TPM_ALG_ECDSA_ECC_NIST_P521, "p521_"},
+};
+
+hybrid_algo_pqc_name_t m_hybrid_algo_pqc_name[] = {
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_2,           "dilithium2"},
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_3,           "dilithium3"},
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_5,           "dilithium5"},
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_2_AES,       "dilithium2_aes"},
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_3_AES,       "dilithium3_aes"},
+  {PQC_CRYPTO_SIG_NID_DILITHIUM_5_AES,       "dilithium5_aes"},
+
+  {PQC_CRYPTO_SIG_NID_FALCON_512,                  "falcon512"},
+  {PQC_CRYPTO_SIG_NID_FALCON_1024,                 "falcon1024"},
+
+  {PQC_CRYPTO_SIG_NID_RAINBOW_I_CLASSIC,           "rainbowIclassic"},
+  {PQC_CRYPTO_SIG_NID_RAINBOW_V_CLASSIC,           "rainbowVclassic"},
+
+  {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_128F_ROBUST,    "sphincsharaka128frobust"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_128F_ROBUST,    "sphincssha256128frobust"},
+  {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_128F_ROBUST,  "sphincsshake256128frobust"},
+
+  {PQC_CRYPTO_SIG_NID_PICNIC_L1_FULL,              "picnicl1full"},
+  {PQC_CRYPTO_SIG_NID_PICNIC3_L1,                  "picnic3l1"},
+};
+
+char8 *
+get_hybrid_algo_tradition_name (
+  IN  uint32  base_asym_algo
+  )
+{
+  uintn                index;
+  for (index = 0; index < ARRAY_SIZE(m_hybrid_algo_tradition_name); index++) {
+    if (m_hybrid_algo_tradition_name[index].base_asym_algo == base_asym_algo) {
+      return m_hybrid_algo_tradition_name[index].tradition_name;
+    }
+  }
+  return NULL;
+}
+
+char8 *
+get_hybrid_algo_pqc_name (
+  IN  pqc_algo_t  pqc_sig_algo
+  )
+{
+  uintn                index;
+  uintn                nid;
+  
+  nid = spdm_get_pqc_sig_nid (pqc_sig_algo);
+  if (nid == 0) {
+    return NULL;
+  }
+
+  for (index = 0; index < ARRAY_SIZE(m_hybrid_algo_pqc_name); index++) {
+    if (m_hybrid_algo_pqc_name[index].nid == nid) {
+      return m_hybrid_algo_pqc_name[index].pqc_name;
+    }
+  }
+  return NULL;
+}
+
+boolean
+read_hybrid_private_certificate (
+  IN  uint32  base_asym_algo,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size,
+  IN  boolean is_requester
+  )
+{
+  char8                *tradition_algo_name;
+  char8                *pqc_algo_name;
+  char8                file_name[256];
+  boolean              result;
+
+  tradition_algo_name = get_hybrid_algo_tradition_name (base_asym_algo);
+  ASSERT (tradition_algo_name != NULL);
+  pqc_algo_name = get_hybrid_algo_pqc_name (pqc_sig_algo);
+  ASSERT (pqc_algo_name != NULL);
+
+  strcpy (file_name, tradition_algo_name);
+  strcat (file_name, pqc_algo_name);
+  if (!is_requester) {
+    strcat (file_name, "/end_responder.key");
+  } else {
+    strcat (file_name, "/end_requester.key");
+  }
+
+  result = read_input_file (file_name, data, size);
+  if (!result) {
+    ASSERT (FALSE);
+  }
+
+  return result;
+}
+
+boolean
+read_hybrid_responder_private_certificate (
+  IN  uint32  base_asym_algo,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  return read_hybrid_private_certificate (base_asym_algo, pqc_sig_algo, data, size, FALSE);
+}
+
+boolean
+read_hybrid_requester_private_certificate (
+  IN  uint16  req_base_asym_alg,
+  IN  pqc_algo_t  pqc_sig_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  return read_hybrid_private_certificate (req_base_asym_alg, pqc_sig_algo, data, size, TRUE);
+}
+
+/**
+  Sign an SPDM message data.
+
+  @param  base_asym_algo                 Indicates the signing algorithm.
+  @param  bash_hash_algo                 Indicates the hash algorithm.
+  @param  message                      A pointer to a message to be signed (before hash).
+  @param  message_size                  The size in bytes of the message to be signed.
+  @param  signature                    A pointer to a destination buffer to store the signature.
+  @param  sig_size                      On input, indicates the size in bytes of the destination buffer to store the signature.
+                                       On output, indicates the size in bytes of the signature in the buffer.
+
+  @retval TRUE  signing success.
+  @retval FALSE signing fail.
+**/
+boolean
+spdm_hybrid_data_sign (
+  IN      uint32       base_asym_algo,
+  IN      uint32       bash_hash_algo,
+  IN      pqc_algo_t  pqc_sig_algo,
+  IN      const uint8  *message,
+  IN      uintn        message_size,
+  OUT     uint8        *signature,
+  IN OUT  uintn        *sig_size,
+  IN      boolean      is_requester
+  )
+{
+  void                          *context;
+  void                          *private_pem;
+  uintn                         private_pem_size;
+  boolean                       result;
+
+  result = read_hybrid_private_certificate (base_asym_algo, pqc_sig_algo, &private_pem, &private_pem_size, is_requester);
+  if (!result) {
+    return FALSE;
+  }
+
+  result = spdm_hybrid_get_private_key_from_pem (private_pem, private_pem_size, NULL, &context);
+  if (!result) {
+    return FALSE;
+  }
+  result = spdm_hybrid_sig_sign (
+             context,
+             message,
+             message_size,
+             signature,
+             sig_size
+             );
+  spdm_hybrid_sig_free (context);
+  free (private_pem);
+
+  return result;
+}
+
+/**
+  Sign an SPDM message data.
+
+  @param  req_base_asym_alg               Indicates the signing algorithm.
+  @param  bash_hash_algo                 Indicates the hash algorithm.
+  @param  message                      A pointer to a message to be signed (before hash).
+  @param  message_size                  The size in bytes of the message to be signed.
+  @param  signature                    A pointer to a destination buffer to store the signature.
+  @param  sig_size                      On input, indicates the size in bytes of the destination buffer to store the signature.
+                                       On output, indicates the size in bytes of the signature in the buffer.
+
+  @retval TRUE  signing success.
+  @retval FALSE signing fail.
+**/
+boolean
+spdm_hybrid_requester_data_sign (
+  IN      uint16       req_base_asym_alg,
+  IN      uint32       bash_hash_algo,
+  IN      pqc_algo_t  pqc_sig_algo,
+  IN      const uint8  *message,
+  IN      uintn        message_size,
+  OUT     uint8        *signature,
+  IN OUT  uintn        *sig_size
+  )
+{
+  return spdm_hybrid_data_sign (req_base_asym_alg, bash_hash_algo, pqc_sig_algo, message, message_size, signature, sig_size, TRUE);
+}
+
+/**
+  Sign an SPDM message data.
+
+  @param  base_asym_algo                 Indicates the signing algorithm.
+  @param  bash_hash_algo                 Indicates the hash algorithm.
+  @param  message                      A pointer to a message to be signed (before hash).
+  @param  message_size                  The size in bytes of the message to be signed.
+  @param  signature                    A pointer to a destination buffer to store the signature.
+  @param  sig_size                      On input, indicates the size in bytes of the destination buffer to store the signature.
+                                       On output, indicates the size in bytes of the signature in the buffer.
+
+  @retval TRUE  signing success.
+  @retval FALSE signing fail.
+**/
+boolean
+spdm_hybrid_responder_data_sign (
+  IN      uint32       base_asym_algo,
+  IN      uint32       bash_hash_algo,
+  IN      pqc_algo_t  pqc_sig_algo,
+  IN      const uint8  *message,
+  IN      uintn        message_size,
+  OUT     uint8        *signature,
+  IN OUT  uintn        *sig_size
+  )
+{
+  return spdm_hybrid_data_sign (base_asym_algo, bash_hash_algo, pqc_sig_algo, message, message_size, signature, sig_size, FALSE);
 }
 

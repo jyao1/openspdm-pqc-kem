@@ -221,6 +221,7 @@ print_usage (
   printf ("   [-x] (dump message in hex)\n");
   printf ("   [--psk <pre-shared key>]\n");
   printf ("   [--dhe_secret <session DHE secret>]\n");
+  printf ("   [--pqc_secret <session PQC shared secret>]\n");
   printf ("   [--req_cap       CERT|CHAL|                                ENCRYPT|MAC|MUT_AUTH|KEY_EX|PSK|                 ENCAP|HBEAT|KEY_UPD|HANDSHAKE_IN_CLEAR|PUB_KEY_ID]\n");
   printf ("   [--rsp_cap CACHE|CERT|CHAL|MEAS_NO_SIG|MEAS_SIG|MEAS_FRESH|ENCRYPT|MAC|MUT_AUTH|KEY_EX|PSK|PSK_WITH_CONTEXT|ENCAP|HBEAT|KEY_UPD|HANDSHAKE_IN_CLEAR|PUB_KEY_ID]\n");
   printf ("   [--hash SHA_256|SHA_384|SHA_512|SHA3_256|SHA3_384|SHA3_512]\n");
@@ -238,7 +239,7 @@ print_usage (
   printf ("\n");
   printf ("NOTE:\n");
   printf ("   [--psk] is required to decrypt a PSK session\n");
-  printf ("   [--dhe_secret] is required to decrypt a non-PSK session\n");
+  printf ("   [--dhe_secret] and [--pqc_secret] are required to decrypt a non-PSK session\n");
   printf ("      format: A hex string, whose count of char must be even.\n");
   printf ("              It must not have prefix '0x'. The leading '0' must be included.\n");
   printf ("              '0123CDEF' means 4 bytes 0x01, 0x23, 0xCD, 0xEF,\n");
@@ -259,6 +260,7 @@ print_usage (
   printf ("              It is one or more ASN.1 DER-encoded X.509 v3 certificates.\n");
   printf ("              It may include multiple certificates, starting from root cert to leaf cert.\n");
   printf ("              It does not include the length, reserved, or root_hash fields.\n");
+  fprintf (stdout, "\n");
 }
 
 void
@@ -357,6 +359,23 @@ process_args (
         continue;
       } else {
         printf ("invalid --dhe_secret\n");
+        print_usage ();
+        exit (0);
+      }
+    }
+
+    if (strcmp (argv[0], "--pqc_secret") == 0) {
+      if (argc >= 2) {
+        if (!hex_string_to_buffer (argv[1], &m_pqc_secret_buffer, &m_pqc_secret_buffer_size)) {
+          printf ("invalid --pqc_secret\n");
+          print_usage ();
+          exit (0);
+        }
+        argc -= 2;
+        argv += 2;
+        continue;
+      } else {
+        printf ("invalid --pqc_secret\n");
         print_usage ();
         exit (0);
       }

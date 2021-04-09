@@ -214,7 +214,7 @@ spdm_generate_session_handshake_key (
   uint8                          bin_str2[128];
   uintn                          bin_str2_size;
   spdm_secured_message_context_t   *secured_message_context;
-
+  
   secured_message_context = spdm_secured_message_context;
 
   hash_size = secured_message_context->hash_size;
@@ -229,9 +229,12 @@ spdm_generate_session_handshake_key (
     // No handshake_secret generation for PSK.
   } else {
     DEBUG((DEBUG_INFO, "[DHE Secret]: "));
-    internal_dump_hex_str (secured_message_context->master_secret.dhe_secret, secured_message_context->dhe_key_size);
+    internal_dump_hex_str (secured_message_context->master_secret.shared_secret, secured_message_context->dhe_key_size);
     DEBUG((DEBUG_INFO, "\n"));
-    ret_val = spdm_hmac_all (secured_message_context->bash_hash_algo, m_zero_filled_buffer, hash_size, secured_message_context->master_secret.dhe_secret, secured_message_context->dhe_key_size, secured_message_context->master_secret.handshake_secret);
+    DEBUG((DEBUG_INFO, "[PQC Secret]: "));
+    internal_dump_hex_str (secured_message_context->master_secret.shared_secret + secured_message_context->dhe_key_size, secured_message_context->pqc_shared_secret_size);
+    DEBUG((DEBUG_INFO, "\n"));
+    ret_val = spdm_hmac_all (secured_message_context->bash_hash_algo, m_zero_filled_buffer, hash_size, secured_message_context->master_secret.shared_secret, secured_message_context->dhe_key_size + secured_message_context->pqc_shared_secret_size, secured_message_context->master_secret.handshake_secret);
     ASSERT (ret_val);
     DEBUG((DEBUG_INFO, "handshake_secret (0x%x) - ", hash_size));
     internal_dump_data (secured_message_context->master_secret.handshake_secret, hash_size);

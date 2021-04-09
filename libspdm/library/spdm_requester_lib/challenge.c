@@ -18,7 +18,7 @@ typedef struct {
   uint8                measurement_summary_hash[MAX_HASH_SIZE];
   uint16               opaque_length;
   uint8                opaque_data[MAX_SPDM_OPAQUE_DATA_SIZE];
-  uint8                signature[MAX_ASYM_KEY_SIZE];
+  uint8                signature[MAX_ASYM_KEY_SIZE + PQC_SIG_SIGNATURE_LENGTH_SIZE + MAX_PQC_SIG_SIGNATURE_SIZE];
 } spdm_challenge_auth_response_max_t;
 
 #pragma pack()
@@ -111,7 +111,7 @@ try_spdm_challenge (
 
   spdm_response_size = sizeof(spdm_response);
   zero_mem (&spdm_response, sizeof(spdm_response));
-  status = spdm_receive_spdm_response (spdm_context, NULL, &spdm_response_size, &spdm_response);
+  status = spdm_receive_spdm_fragment_encap_response (spdm_context, NULL, &spdm_response_size, &spdm_response);
   if (RETURN_ERROR(status)) {
     return RETURN_DEVICE_ERROR;
   }
@@ -154,7 +154,9 @@ try_spdm_challenge (
     }
   }
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
-  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
+  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
+                   PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                   spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
   measurement_summary_hash_size = spdm_get_measurement_summary_hash_size (spdm_context, TRUE, measurement_hash_type);
 
   if (spdm_response_size <= sizeof(spdm_challenge_auth_response_t) +

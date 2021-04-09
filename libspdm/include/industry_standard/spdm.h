@@ -203,7 +203,7 @@ typedef struct {
   uint8                alg_type;
   uint8                alg_count; // BIT[0:3]=ext_alg_count, BIT[4:7]=fixed_alg_byte_count
 //uint8                alg_supported[fixed_alg_byte_count];
-//uint32               AlgExternal[ext_alg_count];
+//uint32               alg_external[ext_alg_count];
 } spdm_negotiate_algorithms_struct_table_t;
 
 typedef struct {
@@ -349,8 +349,10 @@ typedef struct {
   spdm_message_header_t  header;
   // param1 == slot_id
   // param2 == RSVD
-  uint16               Offset;
-  uint16               length;
+  uint16               Offset_reserved;
+  uint16               length_reserved;
+  uint32               Offset;
+  uint32               length;
 } spdm_get_certificate_request_t;
 
 ///
@@ -360,8 +362,10 @@ typedef struct {
   spdm_message_header_t  header;
   // param1 == slot_id
   // param2 == RSVD
-  uint16               portion_length;
-  uint16               remainder_length;
+  uint16               portion_length_reserved;
+  uint16               remainder_length_reserved;
+  uint32               portion_length;
+  uint32               remainder_length;
 //uint8                cert_chain[portion_length];
 } spdm_certificate_response_t;
 
@@ -840,6 +844,102 @@ typedef struct {
   // param1 == RSVD
   // param2 == RSVD
 } spdm_end_session_response_t;
+
+
+//
+// General Fragment Support
+//
+// SPDM Message:
+// +-----------------------------------+
+// |        Whole Message              |
+// +-----------------------------------+
+// Fragment:
+// +-----------------------------------+
+// | Fragment1 | Fragment2 | Fragment3 |
+// +-----------------------------------+
+//
+// SPDM Fragment Message:
+// +--------------------------------------+
+// | SPDM Header (Fragment) | Fragment(x) |
+// +--------------------------------------+
+// 
+
+//
+// SPDM Fragment message Support
+//
+// Fragment Request:
+//    SPDM_FRAGMENT_REQUEST (BEGIN, Seq=0)
+//         SPDM_FRAGMENT_REQUEST_ACK (Seq=0)
+//    SPDM_FRAGMENT_REQUEST (Seq=1)
+//         SPDM_FRAGMENT_REQUEST_ACK (Seq=1)
+//    SPDM_FRAGMENT_REQUEST (END, Seq=2)
+//         SPDM_RESPONSE
+//
+#define SPDM_FRAGMENT_REQUEST        0xFD
+#define SPDM_FRAGMENT_REQUEST_ACK    0x7D
+
+// Fragment Response:
+//    SPDM_REQUEST
+//         SPDM_FRAGMENT_RESPONSE (BEGIN, Seq=0)
+//    SPDM_FRAGMENT_RSP_REQUEST (Seq=1)
+//         SPDM_FRAGMENT_RESPONSE (Seq=1)
+//    SPDM_FRAGMENT_RSP_REQUEST (Seq=2)
+//         SPDM_FRAGMENT_RESPONSE (END, Seq=2)
+//
+#define SPDM_FRAGMENT_RSP_REQUEST    0xFC
+#define SPDM_FRAGMENT_RESPONSE       0x7C
+
+///
+/// SPDM FRAGMENT_REQUEST request
+///
+typedef struct {
+  spdm_message_header_t  header;
+  // param1 == attributes
+  // param2 == request ID
+  uint32                 sequence_id;
+  uint32                 offset;
+  uint32                 length;
+//uint8                  data[length];
+} spdm_fragment_request_t;
+
+#define SPDM_FRAGMENT_REQUEST_ATTRIBUTER_BEGIN    0x1
+#define SPDM_FRAGMENT_REQUEST_ATTRIBUTER_END      0x2
+
+///
+/// SPDM FRAGMENT_REQUEST_ACK response
+///
+typedef struct {
+  spdm_message_header_t  header;
+  // param1 == RSVD
+  // param2 == request ID
+  uint32                 sequence_id;
+} spdm_fragment_request_ack_t;
+
+///
+/// SPDM FRAGMENT_RSP_REQUEST request
+///
+typedef struct {
+  spdm_message_header_t  header;
+  // param1 == RSVD
+  // param2 == response ID
+  uint32                 sequence_id;
+} spdm_fragment_rsp_request_t;
+
+///
+/// SPDM FRAGMENT_RESPONSE response
+///
+typedef struct {
+  spdm_message_header_t  header;
+  // param1 == attributes
+  // param2 == response ID
+  uint32                 sequence_id;
+  uint32                 offset;
+  uint32                 length;
+//uint8                  data[length];
+} spdm_fragment_response_t;
+
+#define SPDM_FRAGMENT_RESPONSE_ATTRIBUTER_BEGIN    0x1
+#define SPDM_FRAGMENT_RESPONSE_ATTRIBUTER_END      0x2
 
 #pragma pack()
 

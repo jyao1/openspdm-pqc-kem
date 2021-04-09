@@ -31,7 +31,9 @@ spdm_create_measurement_signature (
   boolean                       result;
   return_status                 status;
 
-  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
+  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
+                   PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                   spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
   measurment_sig_size = SPDM_NONCE_SIZE +
                       sizeof(uint16) +
                       spdm_context->local_context.opaque_measurement_rsp_size +
@@ -217,7 +219,9 @@ spdm_get_response_measurements (
     return RETURN_SUCCESS;
   }
 
-  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
+  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
+                   PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                   spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
   measurment_sig_size = SPDM_NONCE_SIZE +
                       sizeof(uint16) +
                       spdm_context->local_context.opaque_measurement_rsp_size +

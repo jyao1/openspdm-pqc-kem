@@ -43,8 +43,8 @@ spdm_calculate_th_for_exchange (
 
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
 
-  ASSERT (*th_data_buffer_size >= MAX_SPDM_MESSAGE_BUFFER_SIZE);
-  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+  ASSERT (*th_data_buffer_size >= MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
+  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
 
   DEBUG((DEBUG_INFO, "message_a data :\n"));
   internal_dump_hex (get_managed_buffer(&spdm_context->transcript.message_a), get_managed_buffer_size(&spdm_context->transcript.message_a));
@@ -115,8 +115,8 @@ spdm_calculate_th_for_finish (
 
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
 
-  ASSERT (*th_data_buffer_size >= MAX_SPDM_MESSAGE_BUFFER_SIZE);
-  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_BUFFER_SIZE);
+  ASSERT (*th_data_buffer_size >= MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
+  init_managed_buffer (&th_curr, MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE);
 
   DEBUG((DEBUG_INFO, "message_a data :\n"));
   internal_dump_hex (get_managed_buffer(&spdm_context->transcript.message_a), get_managed_buffer_size(&spdm_context->transcript.message_a));
@@ -186,12 +186,15 @@ spdm_generate_key_exchange_rsp_signature (
   uint8                         *cert_chain_data;
   uintn                         cert_chain_data_size;
   boolean                       result;
-  uintn                         signature_size;
+  uintn                         asym_signature_size;
+  uintn                         pqc_signature_size;
   uint32                        hash_size;
-  uint8                         th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                         th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                         th_curr_data_size;
+  uint32                        *pqc_sigature_length_ptr;
 
-  signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
+  asym_signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
+  pqc_signature_size = spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
 
   result = spdm_get_local_cert_chain_data (spdm_context, (void **)&cert_chain_data, &cert_chain_data_size);
@@ -211,19 +214,59 @@ spdm_generate_key_exchange_rsp_signature (
   internal_dump_data (hash_data, hash_size);
   DEBUG((DEBUG_INFO, "\n"));
 
-  result = spdm_responder_data_sign (
-             spdm_context->connection_info.algorithm.base_asym_algo,
-             spdm_context->connection_info.algorithm.bash_hash_algo,
-             th_curr_data,
-             th_curr_data_size,
-             signature,
-             &signature_size
-             );
-  if (result) {
-    DEBUG((DEBUG_INFO, "signature - "));
-    internal_dump_data (signature, signature_size);
-    DEBUG((DEBUG_INFO, "\n"));
+  if (spdm_context->local_context.pqc_public_key_mode == SPDM_DATA_PUBLIC_KEY_MODE_RAW) {
+    result = spdm_responder_data_sign (
+              spdm_context->connection_info.algorithm.base_asym_algo,
+              spdm_context->connection_info.algorithm.bash_hash_algo,
+              th_curr_data,
+              th_curr_data_size,
+              signature,
+              &asym_signature_size
+              );
+    if (result) {
+      DEBUG((DEBUG_INFO, "signature (classical) - "));
+      internal_dump_data (signature, asym_signature_size);
+      DEBUG((DEBUG_INFO, "\n"));
+    } else {
+      return FALSE;
+    }
+
+    pqc_sigature_length_ptr = (uint32 *)(signature + asym_signature_size);
+    result = spdm_pqc_responder_data_sign (
+              spdm_context->connection_info.algorithm.pqc_sig_algo,
+              th_curr_data,
+              th_curr_data_size,
+              (uint8 *)(pqc_sigature_length_ptr + 1),
+              &pqc_signature_size
+              );
+    *pqc_sigature_length_ptr = (uint32)pqc_signature_size;
+    if (result) {
+      DEBUG((DEBUG_INFO, "signature (PQC) - "));
+      internal_dump_data ((uint8 *)(pqc_sigature_length_ptr + 1), pqc_signature_size);
+      DEBUG((DEBUG_INFO, "\n"));
+    }
+  } else {
+    asym_signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
+                          PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                          spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
+    result = spdm_hybrid_responder_data_sign (
+              spdm_context->connection_info.algorithm.base_asym_algo,
+              spdm_context->connection_info.algorithm.bash_hash_algo,
+              spdm_context->connection_info.algorithm.pqc_sig_algo,
+              th_curr_data,
+              th_curr_data_size,
+              signature,
+              &asym_signature_size
+              );
+    if (result) {
+      DEBUG((DEBUG_INFO, "signature (hybrid) - "));
+      internal_dump_data (signature, asym_signature_size);
+      DEBUG((DEBUG_INFO, "\n"));
+    } else {
+      return FALSE;
+    }
   }
+
   return result;
 }
 
@@ -248,7 +291,7 @@ spdm_generate_key_exchange_rsp_hmac (
   uint8                         *cert_chain_data;
   uintn                         cert_chain_data_size;
   uint32                        hash_size;
-  uint8                         th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                         th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                         th_curr_data_size;
   boolean                       result;
 
@@ -291,21 +334,32 @@ spdm_verify_key_exchange_rsp_signature (
   IN spdm_context_t          *spdm_context,
   IN spdm_session_info_t            *session_info,
   IN void                         *sign_data,
-  IN intn                         sign_data_size
+  IN uintn                        sign_data_size
   )
 {
   uintn                                     hash_size;
   uint8                                     hash_data[MAX_HASH_SIZE];
   boolean                                   result;
+  boolean                                   result2;
+  uintn                                     asym_signature_size;
+  uintn                                     pqc_signature_size;
   uint8                                     *cert_chain_data;
   uintn                                     cert_chain_data_size;
   uint8                                     *cert_buffer;
   uintn                                     cert_buffer_size;
   void                                      *context;
-  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                                     th_curr_data_size;
+  void                                      *pqc_public_key;
+  uintn                                     pqc_public_key_size;
+  uint32                                    *pqc_sigature_length_ptr;
 
+  asym_signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
+  pqc_signature_size = spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
+  if (sign_data_size != asym_signature_size + PQC_SIG_SIGNATURE_LENGTH_SIZE + pqc_signature_size) {
+    return FALSE;
+  }
 
   result = spdm_get_peer_cert_chain_data (spdm_context, (void **)&cert_chain_data, &cert_chain_data_size);
   if (!result) {
@@ -324,9 +378,19 @@ spdm_verify_key_exchange_rsp_signature (
   internal_dump_data (hash_data, hash_size);
   DEBUG((DEBUG_INFO, "\n"));
 
-  DEBUG((DEBUG_INFO, "signature - "));
-  internal_dump_data (sign_data, sign_data_size);
-  DEBUG((DEBUG_INFO, "\n"));
+  if (spdm_context->local_context.pqc_public_key_mode == SPDM_DATA_PUBLIC_KEY_MODE_RAW) {
+    DEBUG((DEBUG_INFO, "signature (classical) - "));
+    internal_dump_data (sign_data, asym_signature_size);
+    DEBUG((DEBUG_INFO, "\n"));
+
+    DEBUG((DEBUG_INFO, "signature (PQC) - "));
+    internal_dump_data ((uint8 *)sign_data + asym_signature_size + PQC_SIG_SIGNATURE_LENGTH_SIZE, pqc_signature_size);
+    DEBUG((DEBUG_INFO, "\n"));
+  } else {
+    DEBUG((DEBUG_INFO, "signature (hybrid) - "));
+    internal_dump_data (sign_data, asym_signature_size + PQC_SIG_SIGNATURE_LENGTH_SIZE + pqc_signature_size);
+    DEBUG((DEBUG_INFO, "\n"));
+  }
 
   //
   // Get leaf cert from cert chain
@@ -336,26 +400,82 @@ spdm_verify_key_exchange_rsp_signature (
     return FALSE;
   }
 
-  result = spdm_asym_get_public_key_from_x509 (spdm_context->connection_info.algorithm.base_asym_algo, cert_buffer, cert_buffer_size, &context);
-  if (!result) {
-    return FALSE;
+  if (spdm_context->local_context.pqc_public_key_mode == SPDM_DATA_PUBLIC_KEY_MODE_RAW) {
+    result = spdm_asym_get_public_key_from_x509 (spdm_context->connection_info.algorithm.base_asym_algo, cert_buffer, cert_buffer_size, &context);
+    if (!result) {
+      return FALSE;
+    }
+
+    result = spdm_asym_verify (
+              spdm_context->connection_info.algorithm.base_asym_algo,
+              spdm_context->connection_info.algorithm.bash_hash_algo,
+              context,
+              th_curr_data,
+              th_curr_data_size,
+              sign_data,
+              asym_signature_size
+              );
+    spdm_asym_free (spdm_context->connection_info.algorithm.base_asym_algo, context);
+    
+    pqc_sigature_length_ptr = (uint32 *)((uint8 *)sign_data + asym_signature_size);
+    if (*pqc_sigature_length_ptr > pqc_signature_size) {
+      return FALSE;
+    }
+    result2 = spdm_get_pqc_peer_public_key (spdm_context, &pqc_public_key, &pqc_public_key_size);
+    if (!result2) {
+      return FALSE;
+    }
+    result2 = spdm_pqc_sig_set_public_key (spdm_context->connection_info.algorithm.pqc_sig_algo, pqc_public_key, pqc_public_key_size, &context);
+    if (!result2) {
+      return FALSE;
+    }
+    result2 = spdm_pqc_sig_verify (
+              spdm_context->connection_info.algorithm.pqc_sig_algo,
+              context,
+              th_curr_data,
+              th_curr_data_size,
+              (uint8 *)(pqc_sigature_length_ptr + 1),
+              *pqc_sigature_length_ptr
+              );
+    spdm_pqc_sig_free (spdm_context->connection_info.algorithm.pqc_sig_algo, context);
+  } else {
+    asym_signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
+                          PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                          spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
+
+    result = spdm_hybrid_get_public_key_from_x509 (cert_buffer, cert_buffer_size, &context);
+    if (!result) {
+      return FALSE;
+    }
+
+    result = spdm_hybrid_sig_verify (
+              context,
+              th_curr_data,
+              th_curr_data_size,
+              sign_data,
+              asym_signature_size
+              );
+    spdm_hybrid_sig_free (context);
   }
 
-  result = spdm_asym_verify (
-             spdm_context->connection_info.algorithm.base_asym_algo,
-             spdm_context->connection_info.algorithm.bash_hash_algo,
-             context,
-             th_curr_data,
-             th_curr_data_size,
-             sign_data,
-             sign_data_size
-             );
-  spdm_asym_free (spdm_context->connection_info.algorithm.base_asym_algo, context);
-  if (!result) {
-    DEBUG((DEBUG_INFO, "!!! verify_key_exchange_signature - FAIL !!!\n"));
-    return FALSE;
+  if (spdm_context->local_context.pqc_public_key_mode == SPDM_DATA_PUBLIC_KEY_MODE_RAW) {
+    if (!result || !result2) {
+      if (!result) {
+        DEBUG((DEBUG_INFO, "!!! verify_key_exchange_signature (classical) - FAIL !!!\n"));
+      }
+      if (!result2) {
+        DEBUG((DEBUG_INFO, "!!! verify_key_exchange_signature (PQC) - FAIL !!!\n"));
+      }
+      return FALSE;
+    }
+    DEBUG((DEBUG_INFO, "!!! verify_key_exchange_signature (classical + PQC) - PASS !!!\n"));
+  } else {
+    if (!result) {
+      DEBUG((DEBUG_INFO, "!!! verify_key_exchange_signature (hybrid) - FAIL !!!\n"));
+      return FALSE;
+    }
+    DEBUG((DEBUG_INFO, "!!! verify_key_exchange_signature (hybrid) - PASS !!!\n"));
   }
-  DEBUG((DEBUG_INFO, "!!! verify_key_exchange_signature - PASS !!!\n"));
 
   return TRUE;
 }
@@ -384,7 +504,7 @@ spdm_verify_key_exchange_rsp_hmac (
   uint8                                     *cert_chain_data;
   uintn                                     cert_chain_data_size;
   boolean                                   result;
-  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                                     th_curr_data_size;
 
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
@@ -438,12 +558,15 @@ spdm_generate_finish_req_signature (
   uint8                         *mut_cert_chain_data;
   uintn                         mut_cert_chain_data_size;
   boolean                       result;
-  uintn                         signature_size;
+  uintn                         asym_signature_size;
+  uintn                         pqc_signature_size;
   uint32                        hash_size;
-  uint8                         th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                         th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                         th_curr_data_size;
+  uint32                        *pqc_sigature_length_ptr;
 
-  signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg);
+  asym_signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg);
+  pqc_signature_size = spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
 
   result = spdm_get_peer_cert_chain_data (spdm_context, (void **)&cert_chain_data, &cert_chain_data_size);
@@ -468,18 +591,58 @@ spdm_generate_finish_req_signature (
   internal_dump_data (hash_data, hash_size);
   DEBUG((DEBUG_INFO, "\n"));
 
-  result = spdm_requester_data_sign (
-             spdm_context->connection_info.algorithm.req_base_asym_alg,
-             spdm_context->connection_info.algorithm.bash_hash_algo,
-             th_curr_data,
-             th_curr_data_size,
-             signature,
-             &signature_size
-             );
-  if (result) {
-    DEBUG((DEBUG_INFO, "signature - "));
-    internal_dump_data (signature, signature_size);
-    DEBUG((DEBUG_INFO, "\n"));
+  if (spdm_context->local_context.pqc_public_key_mode == SPDM_DATA_PUBLIC_KEY_MODE_RAW) {
+    result = spdm_requester_data_sign (
+              spdm_context->connection_info.algorithm.req_base_asym_alg,
+              spdm_context->connection_info.algorithm.bash_hash_algo,
+              th_curr_data,
+              th_curr_data_size,
+              signature,
+              &asym_signature_size
+              );
+    if (result) {
+      DEBUG((DEBUG_INFO, "signature (classical) - "));
+      internal_dump_data (signature, asym_signature_size);
+      DEBUG((DEBUG_INFO, "\n"));
+    } else {
+      return FALSE;
+    }
+
+    pqc_sigature_length_ptr = (uint32 *)(signature + asym_signature_size);
+    pqc_signature_size = spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
+    result = spdm_pqc_requester_data_sign (
+              spdm_context->connection_info.algorithm.pqc_req_sig_algo,
+              th_curr_data,
+              th_curr_data_size,
+              (uint8 *)(pqc_sigature_length_ptr + 1),
+              &pqc_signature_size
+              );
+    *pqc_sigature_length_ptr = (uint32)pqc_signature_size;
+    if (result) {
+      DEBUG((DEBUG_INFO, "signature (PQC) - "));
+      internal_dump_data ((uint8 *)(pqc_sigature_length_ptr + 1), pqc_signature_size);
+      DEBUG((DEBUG_INFO, "\n"));
+    }
+  } else {
+    asym_signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg) +
+                          PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                          spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
+    result = spdm_hybrid_requester_data_sign (
+              spdm_context->connection_info.algorithm.req_base_asym_alg,
+              spdm_context->connection_info.algorithm.bash_hash_algo,
+              spdm_context->connection_info.algorithm.pqc_req_sig_algo,
+              th_curr_data,
+              th_curr_data_size,
+              signature,
+              &asym_signature_size
+              );
+    if (result) {
+      DEBUG((DEBUG_INFO, "signature (hybrid) - "));
+      internal_dump_data (signature, asym_signature_size);
+      DEBUG((DEBUG_INFO, "\n"));
+    } else {
+      return FALSE;
+    }
   }
 
   return result;
@@ -509,7 +672,7 @@ spdm_generate_finish_req_hmac (
   uint8                                     *mut_cert_chain_data;
   uintn                                     mut_cert_chain_data_size;
   boolean                                   result;
-  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                                     th_curr_data_size;
 
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
@@ -561,12 +724,15 @@ spdm_verify_finish_req_signature (
   IN spdm_context_t          *spdm_context,
   IN spdm_session_info_t            *session_info,
   IN void                         *sign_data,
-  IN intn                         sign_data_size
+  IN uintn                        sign_data_size
   )
 {
   uintn                                     hash_size;
   uint8                                     hash_data[MAX_HASH_SIZE];
   boolean                                   result;
+  boolean                                   result2;
+  uintn                                     asym_signature_size;
+  uintn                                     pqc_signature_size;
   uint8                                     *cert_chain_data;
   uintn                                     cert_chain_data_size;
   uint8                                     *mut_cert_chain_data;
@@ -574,10 +740,18 @@ spdm_verify_finish_req_signature (
   uint8                                     *mut_cert_buffer;
   uintn                                     mut_cert_buffer_size;
   void                                      *context;
-  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                                     th_curr_data_size;
+  void                                      *pqc_public_key;
+  uintn                                     pqc_public_key_size;
+  uint32                                    *pqc_sigature_length_ptr;
 
+  asym_signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg);
+  pqc_signature_size = spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
+  if (sign_data_size != asym_signature_size + PQC_SIG_SIGNATURE_LENGTH_SIZE + pqc_signature_size) {
+    return FALSE;
+  }
 
   result = spdm_get_local_cert_chain_data (spdm_context, (void **)&cert_chain_data, &cert_chain_data_size);
   if (!result) {
@@ -601,9 +775,19 @@ spdm_verify_finish_req_signature (
   internal_dump_data (hash_data, hash_size);
   DEBUG((DEBUG_INFO, "\n"));
 
-  DEBUG((DEBUG_INFO, "signature - "));
-  internal_dump_data (sign_data, sign_data_size);
-  DEBUG((DEBUG_INFO, "\n"));
+  if (spdm_context->local_context.pqc_public_key_mode == SPDM_DATA_PUBLIC_KEY_MODE_RAW) {
+    DEBUG((DEBUG_INFO, "signature (classical) - "));
+    internal_dump_data (sign_data, asym_signature_size);
+    DEBUG((DEBUG_INFO, "\n"));
+
+    DEBUG((DEBUG_INFO, "signature (PQC) - "));
+    internal_dump_data ((uint8 *)sign_data + asym_signature_size + PQC_SIG_SIGNATURE_LENGTH_SIZE, pqc_signature_size);
+    DEBUG((DEBUG_INFO, "\n"));
+  } else {
+    DEBUG((DEBUG_INFO, "signature (hybrid) - "));
+    internal_dump_data (sign_data, asym_signature_size + PQC_SIG_SIGNATURE_LENGTH_SIZE + pqc_signature_size);
+    DEBUG((DEBUG_INFO, "\n"));
+  }
 
   //
   // Get leaf cert from cert chain
@@ -613,26 +797,81 @@ spdm_verify_finish_req_signature (
     return FALSE;
   }
 
-  result = spdm_req_asym_get_public_key_from_x509 (spdm_context->connection_info.algorithm.req_base_asym_alg, mut_cert_buffer, mut_cert_buffer_size, &context);
-  if (!result) {
-    return FALSE;
+  if (spdm_context->local_context.pqc_public_key_mode == SPDM_DATA_PUBLIC_KEY_MODE_RAW) {
+    result = spdm_req_asym_get_public_key_from_x509 (spdm_context->connection_info.algorithm.req_base_asym_alg, mut_cert_buffer, mut_cert_buffer_size, &context);
+    if (!result) {
+      return FALSE;
+    }
+
+    result = spdm_req_asym_verify (
+              spdm_context->connection_info.algorithm.req_base_asym_alg,
+              spdm_context->connection_info.algorithm.bash_hash_algo,
+              context,
+              th_curr_data,
+              th_curr_data_size,
+              sign_data,
+              asym_signature_size
+              );
+    spdm_req_asym_free (spdm_context->connection_info.algorithm.req_base_asym_alg, context);
+
+    pqc_sigature_length_ptr = (uint32 *)((uint8 *)sign_data + asym_signature_size);
+    if (*pqc_sigature_length_ptr > pqc_signature_size) {
+      return FALSE;
+    }
+    result2 = spdm_get_pqc_peer_public_key (spdm_context, &pqc_public_key, &pqc_public_key_size);
+    if (!result2) {
+      return FALSE;
+    }
+    result2 = spdm_pqc_req_sig_set_public_key (spdm_context->connection_info.algorithm.pqc_req_sig_algo, pqc_public_key, pqc_public_key_size, &context);
+    if (!result2) {
+      return FALSE;
+    }
+    result2 = spdm_pqc_req_sig_verify (
+                spdm_context->connection_info.algorithm.pqc_req_sig_algo,
+                context,
+                th_curr_data,
+                th_curr_data_size,
+                (uint8 *)(pqc_sigature_length_ptr + 1),
+                *pqc_sigature_length_ptr
+                );
+    spdm_pqc_req_sig_free (spdm_context->connection_info.algorithm.pqc_req_sig_algo, context);
+  } else {
+    asym_signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg) +
+                          PQC_SIG_SIGNATURE_LENGTH_SIZE +
+                          spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
+    result = spdm_hybrid_get_public_key_from_x509 (mut_cert_buffer, mut_cert_buffer_size, &context);
+    if (!result) {
+      return FALSE;
+    }
+
+    result = spdm_hybrid_sig_verify (
+              context,
+              th_curr_data,
+              th_curr_data_size,
+              sign_data,
+              asym_signature_size
+              );
+    spdm_hybrid_sig_free (context);
   }
 
-  result = spdm_req_asym_verify (
-             spdm_context->connection_info.algorithm.req_base_asym_alg,
-             spdm_context->connection_info.algorithm.bash_hash_algo,
-             context,
-             th_curr_data,
-             th_curr_data_size,
-             sign_data,
-             sign_data_size
-             );
-  spdm_req_asym_free (spdm_context->connection_info.algorithm.req_base_asym_alg, context);
-  if (!result) {
-    DEBUG((DEBUG_INFO, "!!! VerifyFinishSignature - FAIL !!!\n"));
-    return FALSE;
+  if (spdm_context->local_context.pqc_public_key_mode == SPDM_DATA_PUBLIC_KEY_MODE_RAW) {
+    if (!result || !result2) {
+      if (!result) {
+        DEBUG((DEBUG_INFO, "!!! VerifyFinishSignature (classical) - FAIL !!!\n"));
+      }
+      if (!result2) {
+        DEBUG((DEBUG_INFO, "!!! VerifyFinishSignature (PQC) - FAIL !!!\n"));
+      }
+      return FALSE;
+    }
+    DEBUG((DEBUG_INFO, "!!! VerifyFinishSignature (classical + PQC) - PASS !!!\n"));
+  } else {
+    if (!result) {
+      DEBUG((DEBUG_INFO, "!!! VerifyFinishSignature (hybrid) - FAIL !!!\n"));
+      return FALSE;
+    }
+    DEBUG((DEBUG_INFO, "!!! VerifyFinishSignature (hybrid) - PASS !!!\n"));
   }
-  DEBUG((DEBUG_INFO, "!!! VerifyFinishSignature - PASS !!!\n"));
 
   return TRUE;
 }
@@ -663,7 +902,7 @@ spdm_verify_finish_req_hmac (
   uintn                         mut_cert_chain_data_size;
   uintn                         hash_size;
   boolean                       result;
-  uint8                         th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                         th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                         th_curr_data_size;
 
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
@@ -727,7 +966,7 @@ spdm_generate_finish_rsp_hmac (
   uintn                         mut_cert_chain_data_size;
   uint32                        hash_size;
   boolean                       result;
-  uint8                         th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                         th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                         th_curr_data_size;
 
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
@@ -789,7 +1028,7 @@ spdm_verify_finish_rsp_hmac (
   uint8                                     *mut_cert_chain_data;
   uintn                                     mut_cert_chain_data_size;
   boolean                                   result;
-  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                                     th_curr_data_size;
 
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
@@ -850,7 +1089,7 @@ spdm_generate_psk_exchange_rsp_hmac (
   uint8                         hmac_data[MAX_HASH_SIZE];
   uint32                        hash_size;
   boolean                       result;
-  uint8                         th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                         th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                         th_curr_data_size;
 
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
@@ -893,7 +1132,7 @@ spdm_verify_psk_exchange_rsp_hmac (
   uintn                                     hash_size;
   uint8                                     calc_hmac_data[MAX_HASH_SIZE];
   boolean                                   result;
-  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                                     th_curr_data_size;
 
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
@@ -939,7 +1178,7 @@ spdm_generate_psk_exchange_req_hmac (
   uintn                                     hash_size;
   uint8                                     calc_hmac_data[MAX_HASH_SIZE];
   boolean                                   result;
-  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                                     th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                                     th_curr_data_size;
 
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
@@ -982,7 +1221,7 @@ spdm_verify_psk_finish_req_hmac (
   uint8                         hmac_data[MAX_HASH_SIZE];
   uint32                        hash_size;
   boolean                       result;
-  uint8                         th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                         th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                         th_curr_data_size;
 
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
@@ -1031,7 +1270,7 @@ spdm_calculate_th1_hash (
   uintn                          cert_chain_data_size;
   spdm_session_info_t              *session_info;
   boolean                        result;
-  uint8                          th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                          th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                          th_curr_data_size;
 
   spdm_context = context;
@@ -1096,7 +1335,7 @@ spdm_calculate_th2_hash (
   uintn                          mut_cert_chain_data_size;
   spdm_session_info_t              *session_info;
   boolean                        result;
-  uint8                          th_curr_data[MAX_SPDM_MESSAGE_BUFFER_SIZE];
+  uint8                          th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                          th_curr_data_size;
 
   spdm_context = context;

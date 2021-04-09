@@ -34,6 +34,8 @@ SET(test_crypt_LIBRARY
     rnglib
     cryptlib_${CRYPTO}
     malloclib
+    oqs
+    cmockalib
 )
 
 if((TOOLCHAIN STREQUAL "KLEE") OR (TOOLCHAIN STREQUAL "CBMC"))

@@ -23,6 +23,7 @@ This document describes spdm_dump tool. It can be used to parse the SPDM message
          [-x] (dump message in hex)
          [--psk <pre-shared key>]
          [--dhe_secret <session DHE secret>]
+         [--pqc_secret <session PQC shared secret>]
          [--req_cap       CERT|CHAL|                                ENCRYPT|MAC|MUT_AUTH|KEY_EX|PSK|                 ENCAP|HBEAT|KEY_UPD|HANDSHAKE_IN_CLEAR|PUB_KEY_ID]
          [--rsp_cap CACHE|CERT|CHAL|MEAS_NO_SIG|MEAS_SIG|MEAS_FRESH|ENCRYPT|MAC|MUT_AUTH|KEY_EX|PSK|PSK_WITH_CONTEXT|ENCAP|HBEAT|KEY_UPD|HANDSHAKE_IN_CLEAR|PUB_KEY_ID]
          [--hash SHA_256|SHA_384|SHA_512|SHA3_256|SHA3_384|SHA3_512]
@@ -40,7 +41,7 @@ This document describes spdm_dump tool. It can be used to parse the SPDM message
 
       NOTE:
          [--psk] is required to decrypt a PSK session
-         [--dhe_secret] is required to decrypt a non-PSK session
+         [--dhe_secret] and [--pqc_secret] are required to decrypt a non-PSK session
             Format: A hex string, whose count of char must be even.
                   It must not have prefix '0x'. The leading '0' must be included.
                   '0123CDEF' means 4 bytes 0x01, 0x23, 0xCD, 0xEF,
@@ -138,15 +139,16 @@ This document describes spdm_dump tool. It can be used to parse the SPDM message
 2. In order to dump the SPDM secure session, you need use `--psk` or `--dhe_secret`.
 
    The DHE secret can be found from SPDM debug message.
-   Take [spdm_emu](https://github.com/jyao1/openspdm/blob/master/spdm_emu/spdm_emu/doc/spdm_emu.md) tool as an example, a user may use `spdm_requester_emu --pcap SpdmRequester.pcap > SpdmRequester.log` or `spdm_responder_emu --pcap SpdmResponder.pcap > SpdmResponder.log` to get the PCAP file and the log file, search "\[DHE Secret\]" or "\[PSK\]" in the log file to get the HEX string.
+   Take [spdm_emu](https://github.com/jyao1/openspdm/blob/master/spdm_emu/spdm_emu/doc/spdm_emu.md) tool as an example, a user may use `spdm_requester_emu --pcap SpdmRequester.pcap > SpdmRequester.log` or `spdm_responder_emu --pcap SpdmResponder.pcap > SpdmResponder.log` to get the PCAP file and the log file, search "\[DHE Secret\]", "\[PQC Secret\]" or "\[PSK\]" in the log file to get the HEX string.
 
    ```
    [DHE Secret]: c7ac17ee29b6a4f84e978223040b7eddff792477a6f7fc0f51faa553fee58175
+   [PQC Secret]: 2dbca9ad7ccddb825b9a646a6b8b15ab5f505c108481a48c74bb9a4c9cf3d7ea
    ...
    [PSK]: 5465737450736b4461746100
    ```
 
-   Then the user may use command `spdm_dump -r SpdmRequester.pcap --psk 5465737450736b4461746100 --dhe_secret c7ac17ee29b6a4f84e978223040b7eddff792477a6f7fc0f51faa553fee58175`
+   Then the user may use command `spdm_dump -r SpdmRequester.pcap --psk 5465737450736b4461746100 --dhe_secret c7ac17ee29b6a4f84e978223040b7eddff792477a6f7fc0f51faa553fee58175 --pqc_secret 2dbca9ad7ccddb825b9a646a6b8b15ab5f505c108481a48c74bb9a4c9cf3d7ea`
 
    A full SPDM log is like below:
 

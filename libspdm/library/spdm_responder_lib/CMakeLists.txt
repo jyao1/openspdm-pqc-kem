@@ -22,6 +22,7 @@ SET(src_spdm_responder_lib
     end_session.c
     error.c
     finish.c
+    fragment_response.c
     handle_response_state.c
     heartbeat.c
     key_exchange.c
