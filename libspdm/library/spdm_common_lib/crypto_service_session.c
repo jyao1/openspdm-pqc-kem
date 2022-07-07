@@ -192,6 +192,9 @@ spdm_generate_key_exchange_rsp_signature (
   uint8                         th_curr_data[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                         th_curr_data_size;
   uint32                        *pqc_sigature_length_ptr;
+  boolean                       need_pqc_sig;
+
+  need_pqc_sig = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_sig_algo);
 
   asym_signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
   pqc_signature_size = spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
@@ -232,13 +235,17 @@ spdm_generate_key_exchange_rsp_signature (
     }
 
     pqc_sigature_length_ptr = (uint32 *)(signature + asym_signature_size);
-    result = spdm_pqc_responder_data_sign (
-              spdm_context->connection_info.algorithm.pqc_sig_algo,
-              th_curr_data,
-              th_curr_data_size,
-              (uint8 *)(pqc_sigature_length_ptr + 1),
-              &pqc_signature_size
-              );
+    if (need_pqc_sig) {
+      result = spdm_pqc_responder_data_sign (
+                spdm_context->connection_info.algorithm.pqc_sig_algo,
+                th_curr_data,
+                th_curr_data_size,
+                (uint8 *)(pqc_sigature_length_ptr + 1),
+                &pqc_signature_size
+                );
+    } else {
+      result = TRUE;
+    }
     *pqc_sigature_length_ptr = (uint32)pqc_signature_size;
     if (result) {
       DEBUG((DEBUG_INFO, "signature (PQC) - "));
@@ -353,6 +360,9 @@ spdm_verify_key_exchange_rsp_signature (
   void                                      *pqc_public_key;
   uintn                                     pqc_public_key_size;
   uint32                                    *pqc_sigature_length_ptr;
+  boolean                                   need_pqc_sig;
+
+  need_pqc_sig = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_sig_algo);
 
   asym_signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo);
   pqc_signature_size = spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
@@ -421,23 +431,27 @@ spdm_verify_key_exchange_rsp_signature (
     if (*pqc_sigature_length_ptr > pqc_signature_size) {
       return FALSE;
     }
-    result2 = spdm_get_pqc_peer_public_key (spdm_context, &pqc_public_key, &pqc_public_key_size);
-    if (!result2) {
-      return FALSE;
+    if (need_pqc_sig) {
+      result2 = spdm_get_pqc_peer_public_key (spdm_context, &pqc_public_key, &pqc_public_key_size);
+      if (!result2) {
+        return FALSE;
+      }
+      result2 = spdm_pqc_sig_set_public_key (spdm_context->connection_info.algorithm.pqc_sig_algo, pqc_public_key, pqc_public_key_size, &context);
+      if (!result2) {
+        return FALSE;
+      }
+      result2 = spdm_pqc_sig_verify (
+                spdm_context->connection_info.algorithm.pqc_sig_algo,
+                context,
+                th_curr_data,
+                th_curr_data_size,
+                (uint8 *)(pqc_sigature_length_ptr + 1),
+                *pqc_sigature_length_ptr
+                );
+      spdm_pqc_sig_free (spdm_context->connection_info.algorithm.pqc_sig_algo, context);
+    } else {
+      result2 = TRUE;
     }
-    result2 = spdm_pqc_sig_set_public_key (spdm_context->connection_info.algorithm.pqc_sig_algo, pqc_public_key, pqc_public_key_size, &context);
-    if (!result2) {
-      return FALSE;
-    }
-    result2 = spdm_pqc_sig_verify (
-              spdm_context->connection_info.algorithm.pqc_sig_algo,
-              context,
-              th_curr_data,
-              th_curr_data_size,
-              (uint8 *)(pqc_sigature_length_ptr + 1),
-              *pqc_sigature_length_ptr
-              );
-    spdm_pqc_sig_free (spdm_context->connection_info.algorithm.pqc_sig_algo, context);
   } else {
     asym_signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
                           PQC_SIG_SIGNATURE_LENGTH_SIZE +

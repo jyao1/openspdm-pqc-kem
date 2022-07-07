@@ -157,28 +157,20 @@ pqc_algo_t m_pqc_sig_priority_table[] = {
 //{0, 0, 0, 0, SPDM_ALGORITHMS_PQC_DIGITAL_SIGNATURE_ALGO_SPHINCS_HARAKA_128F_ROBUST},
   {0, SPDM_ALGORITHMS_PQC_DIGITAL_SIGNATURE_ALGO_FALCON_512},
   {0, SPDM_ALGORITHMS_PQC_DIGITAL_SIGNATURE_ALGO_FALCON_1024},
-//{0, 0, SPDM_ALGORITHMS_PQC_DIGITAL_SIGNATURE_ALGO_RAINBOW_I_CLASSIC},
-//{0, 0, 0, 0, 0, 0, 0, 0, 0, SPDM_ALGORITHMS_PQC_DIGITAL_SIGNATURE_ALGO_PICNIC_L1_FS},
 };
 
 pqc_algo_t m_pqc_req_sig_priority_table[] = {
 //{SPDM_ALGORITHMS_PQC_DIGITAL_SIGNATURE_ALGO_DILITHIUM_2},
   {0, SPDM_ALGORITHMS_PQC_DIGITAL_SIGNATURE_ALGO_FALCON_512},
   {0, SPDM_ALGORITHMS_PQC_DIGITAL_SIGNATURE_ALGO_FALCON_1024},
-//{0, 0, SPDM_ALGORITHMS_PQC_DIGITAL_SIGNATURE_ALGO_RAINBOW_I_CLASSIC},
 //{0, 0, 0, 0, SPDM_ALGORITHMS_PQC_DIGITAL_SIGNATURE_ALGO_SPHINCS_HARAKA_128F_ROBUST},
-//{0, 0, 0, 0, 0, 0, 0, 0, 0, SPDM_ALGORITHMS_PQC_DIGITAL_SIGNATURE_ALGO_PICNIC_L1_FS},
 };
 
 pqc_algo_t m_pqc_kem_priority_table[] = {
 //{SPDM_ALGORITHMS_PQC_KEY_ESTABLISHMENT_ALGO_BIKE1_L1_CPA},
-  {0, 0, 0, 0, 0, 0, 0, 0, SPDM_ALGORITHMS_PQC_KEY_ESTABLISHMENT_ALGO_FRODOKEM_640_AES},
   {0, 0, 0, 0, SPDM_ALGORITHMS_PQC_KEY_ESTABLISHMENT_ALGO_KYBER_512},
 //{0, SPDM_ALGORITHMS_PQC_KEY_ESTABLISHMENT_ALGO_CLASSIC_MCELIECE_348864},
 //{0, 0, 0, SPDM_ALGORITHMS_PQC_KEY_ESTABLISHMENT_ALGO_HQC_128},
-//{0, 0, 0, 0, 0, SPDM_ALGORITHMS_PQC_KEY_ESTABLISHMENT_ALGO_NTRU_HPS_2048_509},
-//{0, 0, 0, 0, 0, 0, SPDM_ALGORITHMS_PQC_KEY_ESTABLISHMENT_ALGO_NTRULPR653},
-//{0, 0, 0, 0, 0, 0, 0, SPDM_ALGORITHMS_PQC_KEY_ESTABLISHMENT_ALGO_LIGHTSABER_KEM},
 //{0, 0, 0, 0, 0, 0, 0, 0, 0, SPDM_ALGORITHMS_PQC_KEY_ESTABLISHMENT_ALGO_SIDH_P434},
 };
 
@@ -552,14 +544,14 @@ spdm_get_response_algorithms (
       algo_size = spdm_get_pqc_sig_public_key_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
       if (algo_size == 0) {
         DEBUG ((DEBUG_INFO, "Unsupported PQC SIG!\n"));
-        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
-        return RETURN_SUCCESS;
+//        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
+//        return RETURN_SUCCESS;
       }
       algo_size = spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
       if (algo_size == 0) {
         DEBUG ((DEBUG_INFO, "Unsupported PQC SIG!\n"));
-        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
-        return RETURN_SUCCESS;
+//        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
+//        return RETURN_SUCCESS;
       }
     }
 
@@ -572,20 +564,20 @@ spdm_get_response_algorithms (
       algo_size = spdm_get_pqc_kem_public_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
       if (algo_size == 0) {
         DEBUG ((DEBUG_INFO, "Unsupported PQC KEM!\n"));
-        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
-        return RETURN_SUCCESS;
+//        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
+//        return RETURN_SUCCESS;
       }
       algo_size = spdm_get_pqc_kem_shared_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
       if (algo_size == 0) {
         DEBUG ((DEBUG_INFO, "Unsupported PQC KEM!\n"));
-        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
-        return RETURN_SUCCESS;
+//        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
+//        return RETURN_SUCCESS;
       }
       algo_size = spdm_get_pqc_kem_cipher_text_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
       if (algo_size == 0) {
         DEBUG ((DEBUG_INFO, "Unsupported PQC KEM!\n"));
-        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
-        return RETURN_SUCCESS;
+//        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
+//        return RETURN_SUCCESS;
       }
     }
     if (spdm_is_capabilities_flag_supported(spdm_context, FALSE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_ENCRYPT_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_ENCRYPT_CAP) ||
@@ -605,14 +597,14 @@ spdm_get_response_algorithms (
       algo_size = spdm_get_pqc_req_sig_public_key_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
       if (algo_size == 0) {
         DEBUG ((DEBUG_INFO, "Unsupported PQC req SIG!\n"));
-        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
-        return RETURN_SUCCESS;
+//        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
+//        return RETURN_SUCCESS;
       }
       algo_size = spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
       if (algo_size == 0) {
         DEBUG ((DEBUG_INFO, "Unsupported PQC req SIG!\n"));
-        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
-        return RETURN_SUCCESS;
+//        spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
+//        return RETURN_SUCCESS;
       }
     }
     if (spdm_is_capabilities_flag_supported(spdm_context, FALSE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_KEY_EX_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_KEY_EX_CAP) ||

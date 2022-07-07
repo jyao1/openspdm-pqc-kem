@@ -324,9 +324,9 @@ spdm_psk_handshake_secret_hkdf_expand (
   } else {
     return FALSE;
   }
-  printf ("[PSK]: ");
-  dump_hex_str (psk, psk_size);
-  printf ("\n");
+  DEBUG ((DEBUG_INFO, "[PSK]: "));
+  internal_dump_hex_str (psk, psk_size);
+  DEBUG ((DEBUG_INFO, "\n"));
 
   hash_size = spdm_get_hash_size (bash_hash_algo);
 
@@ -590,15 +590,9 @@ hybrid_algo_pqc_name_t m_hybrid_algo_pqc_name[] = {
   {PQC_CRYPTO_SIG_NID_FALCON_512,                  "falcon512"},
   {PQC_CRYPTO_SIG_NID_FALCON_1024,                 "falcon1024"},
 
-  {PQC_CRYPTO_SIG_NID_RAINBOW_I_CLASSIC,           "rainbowIclassic"},
-  {PQC_CRYPTO_SIG_NID_RAINBOW_V_CLASSIC,           "rainbowVclassic"},
-
   {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_128F_ROBUST,    "sphincsharaka128frobust"},
   {PQC_CRYPTO_SIG_NID_SPHINCS_SHA256_128F_ROBUST,    "sphincssha256128frobust"},
   {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_128F_ROBUST,  "sphincsshake256128frobust"},
-
-  {PQC_CRYPTO_SIG_NID_PICNIC_L1_FULL,              "picnicl1full"},
-  {PQC_CRYPTO_SIG_NID_PICNIC3_L1,                  "picnic3l1"},
 };
 
 char8 *

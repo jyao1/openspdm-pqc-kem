@@ -59,6 +59,7 @@ spdm_get_response_key_exchange (
   uintn                         pqc_kem_public_key_size;
   uintn                         pqc_kem_cipher_text_size;
   boolean                       result2;
+  boolean                       need_pqc_kem;
 
   spdm_context = context;
   spdm_request = request;
@@ -92,6 +93,8 @@ spdm_get_response_key_exchange (
   if (slot_id == 0xFF) {
     slot_id = spdm_context->local_context.provisioned_slot_id;
   }
+
+  need_pqc_kem = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_kem_algo);
 
   signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
                    PQC_SIG_SIGNATURE_LENGTH_SIZE +
@@ -193,6 +196,7 @@ spdm_get_response_key_exchange (
   spdm_get_random_number (SPDM_RANDOM_DATA_SIZE, spdm_response->random_data);
 
   ptr = (void *)(spdm_response + 1);
+perf_start (PERF_ID_KEY_EX_KEM_ENCAP);
   dhe_context = spdm_secured_message_dhe_new (spdm_context->connection_info.algorithm.dhe_named_group);
   spdm_secured_message_dhe_generate_key (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context, ptr, &dhe_key_size);
   DEBUG((DEBUG_INFO, "Calc SelfKey (0x%x):\n", dhe_key_size));
@@ -211,23 +215,26 @@ spdm_get_response_key_exchange (
 
   ptr += dhe_key_size;
 
-  pqc_kem_context = spdm_secured_message_pqc_kem_new (spdm_context->connection_info.algorithm.pqc_kem_algo);
-  result2 = spdm_secured_message_pqc_kem_encap (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context,
-                                                (uint8 *)request + sizeof(spdm_key_exchange_request_t) + dhe_key_size, pqc_kem_public_key_size,
-                                                ptr, &pqc_kem_cipher_text_size, session_info->secured_message_context);
-  DEBUG((DEBUG_INFO, "Calc SelfKey PQC (0x%x):\n", pqc_kem_cipher_text_size));
-  internal_dump_hex (ptr, pqc_kem_cipher_text_size);
+  if (need_pqc_kem) {
+    pqc_kem_context = spdm_secured_message_pqc_kem_new (spdm_context->connection_info.algorithm.pqc_kem_algo);
+    result2 = spdm_secured_message_pqc_kem_encap (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context,
+                                                  (uint8 *)request + sizeof(spdm_key_exchange_request_t) + dhe_key_size, pqc_kem_public_key_size,
+                                                  ptr, &pqc_kem_cipher_text_size, session_info->secured_message_context);
+    DEBUG((DEBUG_INFO, "Calc SelfKey PQC (0x%x):\n", pqc_kem_cipher_text_size));
+    internal_dump_hex (ptr, pqc_kem_cipher_text_size);
 
-  DEBUG((DEBUG_INFO, "Calc peer_key PQC (0x%x):\n", pqc_kem_public_key_size));
-  internal_dump_hex ((uint8 *)request + sizeof(spdm_key_exchange_request_t) + dhe_key_size, pqc_kem_public_key_size);
+    DEBUG((DEBUG_INFO, "Calc peer_key PQC (0x%x):\n", pqc_kem_public_key_size));
+    internal_dump_hex ((uint8 *)request + sizeof(spdm_key_exchange_request_t) + dhe_key_size, pqc_kem_public_key_size);
 
-  spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
-  if (!result2) {
-    spdm_free_session_id (spdm_context, session_id);
-    spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
-    return RETURN_SUCCESS;
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
+    if (!result2) {
+      spdm_free_session_id (spdm_context, session_id);
+      spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
+      return RETURN_SUCCESS;
+    }
+    ptr += pqc_kem_cipher_text_size;
   }
-  ptr += pqc_kem_cipher_text_size;
+perf_stop (PERF_ID_KEY_EX_KEM_ENCAP);
 
   result = spdm_generate_measurement_summary_hash (spdm_context, FALSE, spdm_request->header.param1, ptr);
   if (!result) {
@@ -252,7 +259,9 @@ spdm_get_response_key_exchange (
     spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
     return RETURN_SUCCESS;
   }
+perf_start (PERF_ID_KEY_EX_SIG_GEN);
   result = spdm_generate_key_exchange_rsp_signature (spdm_context, session_info, ptr);
+perf_stop (PERF_ID_KEY_EX_SIG_GEN);
   if (!result) {
     spdm_free_session_id (spdm_context, session_id);
     spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_UNSUPPORTED_REQUEST, SPDM_KEY_EXCHANGE_RSP, response_size, response);

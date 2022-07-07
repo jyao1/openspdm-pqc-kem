@@ -20,6 +20,13 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 //   payload (SPDM message, starting from SPDM_HEADER): PayloadSize (little endian)
 //
 
+typedef struct {
+  uint32 command;
+  uint32 transport_type;
+  uint32 payload_size;
+//uint8  payload[];
+} socket_buffer_header_t;
+
 #define SOCKET_TRANSPORT_TYPE_MCTP     0x01
 #define SOCKET_TRANSPORT_TYPE_PCI_DOE  0x02
 

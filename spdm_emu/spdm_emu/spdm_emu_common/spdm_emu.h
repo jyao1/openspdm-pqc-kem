@@ -48,9 +48,11 @@ extern spdm_key_update_action_t  m_use_key_update_action;
 extern uint32  m_use_hash_algo;
 extern uint32  m_use_measurement_hash_algo;
 extern uint32  m_use_asym_algo;
+extern uint16  m_use_dhe_algo;
 extern uint16  m_use_req_asym_algo;
 
 extern pqc_algo_t m_use_pqc_sig_algo;
+extern pqc_algo_t m_use_pqc_kem_algo;
 extern pqc_algo_t m_use_pqc_req_sig_algo;
 
 extern uint8   m_support_measurement_spec;
@@ -90,6 +92,7 @@ extern uint32  m_exe_connection;
 #define EXE_SESSION_KEY_UPDATE          0x8
 #define EXE_SESSION_HEARTBEAT           0x10
 #define EXE_SESSION_MEAS                0x20
+#define EXE_SESSION_APP                 0x40
 extern uint32  m_exe_session;
 
 void
@@ -164,5 +167,8 @@ process_args (
   int   argc,
   char  *argv[ ]
   );
+
+void
+perf_dump ();
 
 #endif

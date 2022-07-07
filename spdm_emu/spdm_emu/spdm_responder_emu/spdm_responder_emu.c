@@ -323,6 +323,8 @@ int main (
 
   printf ("Server stopped\n");
 
+  perf_dump ();
+
   close_pcap_packet_file ();
   return 0;
 }

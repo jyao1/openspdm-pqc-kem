@@ -31,7 +31,7 @@ dump_data (
   uintn index;
 
   for (index = 0; index < buffer_size; index++) {
-    printf ("%02x ", buffer[index]);
+    DEBUG ((DEBUG_INFO, "%02x ", buffer[index]));
   }
 }
 
@@ -50,15 +50,15 @@ dump_hex (
   count = size / COLUME_SIZE;
   left  = size % COLUME_SIZE;
   for (index = 0; index < count; index++) {
-    printf ("%04x: ", (uint32)(index * COLUME_SIZE));
+    DEBUG ((DEBUG_INFO, "%04x: ", (uint32)(index * COLUME_SIZE)));
     dump_data (data + index * COLUME_SIZE, COLUME_SIZE);
-    printf ("\n");
+    DEBUG ((DEBUG_INFO, "\n"));
   }
 
   if (left != 0) {
-    printf ("%04x: ", (uint32)(index * COLUME_SIZE));
+    DEBUG ((DEBUG_INFO, "%04x: ", (uint32)(index * COLUME_SIZE)));
     dump_data (data + index * COLUME_SIZE, left);
-    printf ("\n");
+    DEBUG ((DEBUG_INFO, "\n"));
   }
 }
 

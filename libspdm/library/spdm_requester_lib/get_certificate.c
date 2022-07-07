@@ -170,8 +170,9 @@ try_spdm_get_certificate (
     spdm_context->connection_info.connection_state = SPDM_CONNECTION_STATE_AFTER_CERTIFICATE;
 
   } while (spdm_response.remainder_length != 0);
-
+perf_start (PERF_ID_CERT_VERIFICATION);
   result = spdm_verify_peer_cert_chain_buffer (spdm_context, get_managed_buffer(&certificate_chain_buffer), get_managed_buffer_size(&certificate_chain_buffer));
+perf_stop (PERF_ID_CERT_VERIFICATION);
   if (!result) {
     spdm_context->error_state = SPDM_STATUS_ERROR_CERTIFICATE_FAILURE;
     status = RETURN_SECURITY_VIOLATION;

@@ -280,11 +280,11 @@ try_spdm_negotiate_algorithms (
     if (spdm_is_capabilities_flag_supported(spdm_context, TRUE, 0, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_CHAL_CAP)) {
       algo_size = spdm_get_pqc_sig_public_key_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
       if (algo_size == 0) {
-        return RETURN_SECURITY_VIOLATION;
+//        return RETURN_SECURITY_VIOLATION;
       }
       algo_size = spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
       if (algo_size == 0) {
-        return RETURN_SECURITY_VIOLATION;
+//        return RETURN_SECURITY_VIOLATION;
       }
     }
     if (spdm_is_capabilities_flag_supported(spdm_context, TRUE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_KEY_EX_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_KEY_EX_CAP)) {
@@ -294,15 +294,15 @@ try_spdm_negotiate_algorithms (
       }
       algo_size = spdm_get_pqc_kem_public_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
       if (algo_size == 0) {
-        return RETURN_SECURITY_VIOLATION;
+//        return RETURN_SECURITY_VIOLATION;
       }
       algo_size = spdm_get_pqc_kem_shared_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
       if (algo_size == 0) {
-        return RETURN_SECURITY_VIOLATION;
+//        return RETURN_SECURITY_VIOLATION;
       }
       algo_size = spdm_get_pqc_kem_cipher_text_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
       if (algo_size == 0) {
-        return RETURN_SECURITY_VIOLATION;
+//        return RETURN_SECURITY_VIOLATION;
       }
     }
     if (spdm_is_capabilities_flag_supported(spdm_context, TRUE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_ENCRYPT_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_ENCRYPT_CAP) ||
@@ -319,11 +319,11 @@ try_spdm_negotiate_algorithms (
       }
       algo_size = spdm_get_pqc_req_sig_public_key_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
       if (algo_size == 0) {
-        return RETURN_SECURITY_VIOLATION;
+//        return RETURN_SECURITY_VIOLATION;
       }
       algo_size = spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
       if (algo_size == 0) {
-        return RETURN_SECURITY_VIOLATION;
+//        return RETURN_SECURITY_VIOLATION;
       }
     }
     if (spdm_is_capabilities_flag_supported(spdm_context, TRUE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_KEY_EX_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_KEY_EX_CAP) ||

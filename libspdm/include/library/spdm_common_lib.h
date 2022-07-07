@@ -986,4 +986,25 @@ spdm_write_uint24 (
   IN uint32 value
   );
 
+typedef enum {
+  PERF_ID_RESERVED,
+  PERF_ID_REQUESTER,
+  PERF_ID_RESPONDER,
+  PERF_ID_CERT_VERIFICATION,
+  PERF_ID_CHALLENG_SIG_GEN,
+  PERF_ID_CHALLENG_SIG_VER,
+  PERF_ID_KEY_EX_KEM_GEN,
+  PERF_ID_KEY_EX_KEM_ENCAP,
+  PERF_ID_KEY_EX_KEM_DECAP,
+  PERF_ID_KEY_EX_SIG_GEN,
+  PERF_ID_KEY_EX_SIG_VER,
+  PERF_ID_MAX,
+} perf_id_t;
+
+uint64
+perf_start (perf_id_t perf_id);
+
+uint64
+perf_stop (perf_id_t perf_id);
+
 #endif

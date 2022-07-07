@@ -16,27 +16,6 @@
 | Dilithium5-AES | EUF-CMA        | 5                           | 2592                    | 4864                    | 4595                   |
 | Falcon-512    | EUF-CMA        | 1                           | 897                     | 1281                    | 690                    |
 | Falcon-1024   | EUF-CMA        | 5                           | 1793                    | 2305                    | 1330                   |
-| picnic_L1_FS    |     EUF-CMA    |              1              |            33           |            49           |          34036         |
-| picnic_L1_UR    |     EUF-CMA    |              1              |            33           |            49           |          53965         |
-| picnic_L1_full  |     EUF-CMA    |              1              |            35           |            52           |          32065         |
-| picnic_L3_FS    |     EUF-CMA    |              3              |            49           |            73           |          76776         |
-| picnic_L3_UR    |     EUF-CMA    |              3              |            49           |            73           |         121849         |
-| picnic_L3_full  |     EUF-CMA    |              3              |            49           |            73           |          71183         |
-| picnic_L5_FS    |     EUF-CMA    |              5              |            65           |            97           |         132860         |
-| picnic_L5_UR    |     EUF-CMA    |              5              |            65           |            97           |         209510         |
-| picnic_L5_full  |     EUF-CMA    |              5              |            65           |            97           |         126290         |
-| picnic3_L1      |     EUF-CMA    |              1              |            35           |            52           |          14612         |
-| picnic3_L3      |     EUF-CMA    |              3              |            49           |            73           |          35028         |
-| picnic3_L5      |     EUF-CMA    |              5              |            65           |            97           |          61028         |
-| Rainbow-I-Classic          | EUF-CMA        | 1                           | 161600                  | 103648                  | 66                     |
-| Rainbow-I-Circumzenithal   | EUF-CMA        | 1                           | 60192                   | 103648                  | 66                     |
-| Rainbow-I-Compressed       | EUF-CMA        | 1                           | 60192                   | 64                      | 66                     |
-| Rainbow-III-Classic        | EUF-CMA        | 3                           | 882080                  | 626048                  | 164                    |
-| Rainbow-III-Circumzenithal | EUF-CMA        | 3                           | 264608                  | 626048                  | 164                    |
-| Rainbow-III-Compressed     | EUF-CMA        | 3                           | 264608                  | 64                      | 164                    |
-| Rainbow-V-Classic          | EUF-CMA        | 5                           | 1930600                 | 1408736                 | 212                    |
-| Rainbow-V-Circumzenithal   | EUF-CMA        | 5                           | 536136                  | 1408736                 | 212                    |
-| Rainbow-V-Compressed       | EUF-CMA        | 5                           | 536136                  | 64                      | 212                    |
 | SPHINCS+-Haraka-128f-robust   | EUF-CMA        | 1                           | 32                      | 64                      | 16976                  |
 | SPHINCS+-Haraka-128f-simple   | EUF-CMA        | 1                           | 32                      | 64                      | 16976                  |
 | SPHINCS+-Haraka-128s-robust   | EUF-CMA        | 1                           | 32                      | 64                      | 8080                   |
@@ -92,12 +71,6 @@
 | Classic-McEliece-6960119f | IND-CCA2       | 5                           | 1047319                 | 13908                   | 226                     | 32                         |
 | Classic-McEliece-8192128  | IND-CCA2       | 5                           | 1357824                 | 14080                   | 240                     | 32                         |
 | Classic-McEliece-8192128f | IND-CCA2       | 5                           | 1357824                 | 14080                   | 240                     | 32                         |
-| FrodoKEM-640-AES    |     IND-CCA    |              1              |           9616          |          19888          |           9720          |             16             |
-| FrodoKEM-640-SHAKE  |     IND-CCA    |              1              |           9616          |          19888          |           9720          |             16             |
-| FrodoKEM-976-AES    |     IND-CCA    |              3              |          15632          |          31296          |          15744          |             24             |
-| FrodoKEM-976-SHAKE  |     IND-CCA    |              3              |          15632          |          31296          |          15744          |             24             |
-| FrodoKEM-1344-AES   |     IND-CCA    |              5              |          21520          |          43088          |          21632          |             32             |
-| FrodoKEM-1344-SHAKE |     IND-CCA    |              5              |          21520          |          43088          |          21632          |             32             |
 | HQC-128       | IND-CCA2       | 1                           | 2249                    | 2289                    | 4481                    | 64                         |
 | HQC-192       | IND-CCA2       | 3                           | 4522                    | 4562                    | 9026                    | 64                         |
 | HQC-256       | IND-CCA2       | 5                           | 7245                    | 7285                    | 14469                   | 64                         |
@@ -107,19 +80,6 @@
 | Kyber512-90s  | IND-CCA2       | 1                           | 800                     | 1632                    | 768                     | 32                         |
 | Kyber768-90s  | IND-CCA2       | 1                           | 1184                    | 2400                    | 1088                    | 32                         |
 | Kyber1024-90s | IND-CCA2       | 5                           | 1568                    | 3168                    | 1568                    | 32                         |
-| NTRU-HPS-2048-509 | IND-CCA2       | 1                           | 699                     | 935                     | 699                     | 32                         |
-| NTRU-HPS-2048-677 | IND-CCA2       | 3                           | 930                     | 1234                    | 930                     | 32                         |
-| NTRU-HPS-4096-821 | IND-CCA2       | 5                           | 1230                    | 1590                    | 1230                    | 32                         |
-| NTRU-HRSS-701     | IND-CCA2       | 3                           | 1138                    | 1450                    | 1138                    | 32                         |
-| ntrulpr653    | IND-CCA2       | 2                           | 897                     | 1125                    | 1025                    | 32                         |
-| ntrulpr761    | IND-CCA2       | 3                           | 1039                    | 1294                    | 1167                    | 32                         |
-| ntrulpr857    | IND-CCA2       | 4                           | 1184                    | 1463                    | 1312                    | 32                         |
-| sntrup653     | IND-CCA2       | 2                           | 994                     | 1518                    | 897                     | 32                         |
-| sntrup761     | IND-CCA2       | 3                           | 1158                    | 1763                    | 1039                    | 32                         |
-| sntrup857     | IND-CCA2       | 4                           | 1322                    | 1999                    | 1184                    | 32                         |
-| LightSaber-KEM | IND-CCA2       | 1                           | 672                     | 1568                    | 736                     | 32                         |
-| Saber-KEM      | IND-CCA2       | 3                           | 992                     | 2304                    | 1088                    | 32                         |
-| FireSaber-KEM  | IND-CCA2       | 5                           | 1312                    | 3040                    | 1472                    | 32                         |
 | SIDH-p434            |     IND-CPA    |              1              |           330           |            28           |           330           |             110            |
 | SIDH-p434-compressed |     IND-CPA    |              1              |           197           |            28           |           197           |             110            |
 | SIDH-p503            |     IND-CPA    |              2              |           378           |            32           |           378           |             126            |
@@ -145,11 +105,7 @@ The following quantum-safe algorithms from liboqs are supported (assuming they h
 
 - **BIKE**: `bike1l1cpa`, `bike1l3cpa`, `bike1l1fo`, `bike1l3fo`
 - **CRYSTALS-Kyber**: `kyber512`, `kyber768`, `kyber1024`, `kyber90s512`, `kyber90s768`, `kyber90s1024`
-- **FrodoKEM**: `frodo640aes`, `frodo640shake`, `frodo976aes`, `frodo976shake`, `frodo1344aes`, `frodo1344shake`
 - **HQC**: `hqc128`, `hqc192`, `hqc256`†
-- **NTRU**: `ntru_hps2048509`, `ntru_hps2048677`, `ntru_hps4096821`, `ntru_hrss701`
-- **NTRU-Prime**: `ntrulpr653`, `ntrulpr761`, `ntrulpr857`, `sntrup653`, `sntrup761`, `sntrup857`
-- **SABER**: `lightsaber`, `saber`, `firesaber`
 - **SIDH**: `sidhp434`, `sidhp503`, `sidhp610`, `sidhp751`
 - **SIKE**: `sikep434`, `sikep503`, `sikep610`, `sikep751`
 
@@ -163,8 +119,6 @@ For example, since `kyber768` claims L3 security, the hybrid `p384_kyber768` is 
 
 - **CRYSTALS-Dilithium**:`dilithium2`\*, `dilithium3`\*, `dilithium5`\*, `dilithium2_aes`\*, `dilithium3_aes`\*, `dilithium5_aes`\*
 - **Falcon**:`falcon512`\*, `falcon1024`\*
-- **Picnic**:`picnicl1fs`, `picnicl1ur`, `picnicl1full`\*, `picnic3l1`\*, `picnic3l3`, `picnic3l5`
-- **Rainbow**:`rainbowIclassic`\*, `rainbowIcircumzenithal`, `rainbowIcompressed`, `rainbowIIIclassic`, `rainbowIIIcircumzenithal`, `rainbowIIIcompressed`, `rainbowVclassic`\*, `rainbowVcircumzenithal`, `rainbowVcompressed`
 - **SPHINCS-Haraka**:`sphincsharaka128frobust`\*, `sphincsharaka128fsimple`, `sphincsharaka128srobust`, `sphincsharaka128ssimple`, `sphincsharaka192frobust`, `sphincsharaka192fsimple`, `sphincsharaka192srobust`, `sphincsharaka192ssimple`, `sphincsharaka256frobust`, `sphincsharaka256fsimple`, `sphincsharaka256srobust`, `sphincsharaka256ssimple`
 - **SPHINCS-SHA256**:`sphincssha256128frobust`\*, `sphincssha256128fsimple`, `sphincssha256128srobust`, `sphincssha256128ssimple`, `sphincssha256192frobust`, `sphincssha256192fsimple`, `sphincssha256192srobust`, `sphincssha256192ssimple`, `sphincssha256256frobust`, `sphincssha256256fsimple`, `sphincssha256256srobust`, `sphincssha256256ssimple`
 - **SPHINCS-SHAKE256**:`sphincsshake256128frobust`\*, `sphincsshake256128fsimple`, `sphincsshake256128srobust`, `sphincsshake256128ssimple`, `sphincsshake256192frobust`, `sphincsshake256192fsimple`, `sphincsshake256192srobust`, `sphincsshake256192ssimple`, `sphincsshake256256frobust`, `sphincsshake256256fsimple`, `sphincsshake256256srobust`, `sphincsshake256256ssimple`
@@ -196,12 +150,6 @@ For hybrid singing, the message to be signed is hashed using the SHA-2 hash func
 | p256_bike1l1fo   -                | --dhe SECP_256_R1  --pqc_kem BIKE1_L1_FO                                          |
 | p384_bike1l3cpa  -                | --dhe SECP_384_R1  --pqc_kem BIKE1_L3_CPA                                         |
 | p384_bike1l3fo   -                | --dhe SECP_384_R1  --pqc_kem BIKE1_L3_FO                                          |
-| p256_frodo640aes                  | --dhe SECP_256_R1  --pqc_kem FRODOKEM_640_AES                                     |
-| p256_frodo640shake                | --dhe SECP_256_R1  --pqc_kem FRODOKEM_640_SHAKE                                   |
-| p384_frodo976aes    +             | --dhe SECP_384_R1  --pqc_kem FRODOKEM_976_AES                                     |
-| p384_frodo976shake  +             | --dhe SECP_384_R1  --pqc_kem FRODOKEM_976_SHAKE                                   |
-| p521_frodo1344aes   +             | --dhe SECP_521_R1  --pqc_kem FRODOKEM_1344_AES                                    |
-| p521_frodo1344shake +             | --dhe SECP_521_R1  --pqc_kem FRODOKEM_1344_SHAKE                                  |
 | p256_hqc128                       | --dhe SECP_256_R1  --pqc_kem HQC_128                                              |
 | p384_hqc192                       | --dhe SECP_384_R1  --pqc_kem HQC_192                                              |
 | p521_hqc256         +             | --dhe SECP_521_R1  --pqc_kem HQC_256                                              |
@@ -211,19 +159,6 @@ For hybrid singing, the message to be signed is hashed using the SHA-2 hash func
 | p384_kyber90s768                  | --dhe SECP_384_R1  --pqc_kem KYBER_768_90S                                        |
 | p521_kyber1024                    | --dhe SECP_521_R1  --pqc_kem KYBER_1024                                           |
 | p521_kyber90s1024                 | --dhe SECP_521_R1  --pqc_kem KYBER_1024_90S                                       |
-| p256_ntru_hps2048509              | --dhe SECP_256_R1  --pqc_kem NTRU_HPS_2048_509                                    |
-| p384_ntru_hps2048677              | --dhe SECP_384_R1  --pqc_kem NTRU_HPS_2048_677                                    |
-| p521_ntru_hps4096821              | --dhe SECP_521_R1  --pqc_kem NTRU_HPS_2048_821                                    |
-| p384_ntru_hrss701                 | --dhe SECP_384_R1  --pqc_kem NTRU_HRSS_701                                        |
-| p256_ntrulpr653                   | --dhe SECP_256_R1  --pqc_kem NTRULPR653                                           |
-| p384_ntrulpr761                   | --dhe SECP_384_R1  --pqc_kem NTRULPR761                                           |
-| p384_ntrulpr857                   | --dhe SECP_384_R1  --pqc_kem NTRULPR857                                           |
-| p256_sntrup653                    | --dhe SECP_256_R1  --pqc_kem SNTRUP653                                            |
-| p384_sntrup761                    | --dhe SECP_384_R1  --pqc_kem SNTRUP761                                            |
-| p384_sntrup857                    | --dhe SECP_384_R1  --pqc_kem SNTRUP857                                            |
-| p256_lightsaber                   | --dhe SECP_256_R1  --pqc_kem LIGHTSABER_KEM                                       |
-| p384_saber                        | --dhe SECP_384_R1  --pqc_kem SABER_KEM                                            |
-| p521_firesaber                    | --dhe SECP_521_R1  --pqc_kem FIRESABER_KEM                                        |
 | p256_sidhp434                     | --dhe SECP_256_R1  --pqc_kem SIDH_P434                                            |
 | p256_sidhp503                     | --dhe SECP_256_R1  --pqc_kem SIDH_P503                                            |
 | p384_sidhp610                     | --dhe SECP_384_R1  --pqc_kem SIDH_P610                                            |
@@ -258,13 +193,6 @@ For hybrid singing, the message to be signed is hashed using the SHA-2 hash func
 | rsa3072_falcon512                 | --pqc_pub_key_mode CERT --hash SHA_256 --asym RSAPSS_3072 --pqc_sig FALCON_512                   |
 | p256_falcon512                    | --pqc_pub_key_mode CERT --hash SHA_256 --asym ECDSA_P256  --pqc_sig FALCON_512                   |
 | p521_falcon1024                   | --pqc_pub_key_mode CERT --hash SHA_512 --asym ECDSA_P521  --pqc_sig FALCON_1024                  |
-| rsa3072_picnic3l1     +           | --pqc_pub_key_mode CERT --hash SHA_256 --asym RSAPSS_3072 --pqc_sig PICNIC3_L1                   |
-| rsa3072_picnicl1full              | --pqc_pub_key_mode CERT --hash SHA_256 --asym RSAPSS_3072 --pqc_sig PICNIC_L1_FULL               |
-| p256_picnic3l1        +           | --pqc_pub_key_mode CERT --hash SHA_256 --asym ECDSA_P256  --pqc_sig PICNIC3_L1                   |
-| p256_picnicl1full     +           | --pqc_pub_key_mode CERT --hash SHA_256 --asym ECDSA_P256  --pqc_sig PICNIC_L1_FULL               |
-| rsa3072_rainbowIclassic *         | --pqc_pub_key_mode CERT --hash SHA_256 --asym RSAPSS_3072 --pqc_sig RAINBOW_I_CLASSIC            |
-| p256_rainbowIclassic    *         | --pqc_pub_key_mode CERT --hash SHA_256 --asym ECDSA_P256  --pqc_sig RAINBOW_I_CLASSIC            |
-| p521_rainbowVclassic    *         | --pqc_pub_key_mode CERT --hash SHA_512 --asym ECDSA_P521  --pqc_sig RAINBOW_V_CLASSIC            |
 | rsa3072_sphincsharaka128frobust  +| --pqc_pub_key_mode CERT --hash SHA_256 --asym RSAPSS_3072 --pqc_sig SPHINCS_HARAKA_128F_ROBUST   |
 | rsa3072_sphincssha256128frobust  +| --pqc_pub_key_mode CERT --hash SHA_256 --asym RSAPSS_3072 --pqc_sig SPHINCS_SHA256_128F_ROBUST   |
 | rsa3072_sphincsshake256128frobust+| --pqc_pub_key_mode CERT --hash SHA_256 --asym RSAPSS_3072 --pqc_sig SPHINCS_SHAKE256_128F_ROBUST |
@@ -279,6 +207,62 @@ For hybrid singing, the message to be signed is hashed using the SHA-2 hash func
 
   See [PQC Stack Heap Usage](https://github.com/jyao1/CryptoEx/blob/master/QuantumSafePkg/PqcCryptTest/StackHeapUsage.c)
 
+5) Performance
+
+  We collect performance data for a typical SPDM flow:
+  * Connection Setup: GET_VERSION, GET_CAPABILITIES, NEGOTIATE_ALGORITHM
+  * Device Authentication: GET_DIGESTS, GET_CERTIFICATE (REQ:CERT_VERIFY), CHALLENGE (RSP:CHAL_SIGN, REQ:CHAL_VERIFY)
+  * Secure Session Setup: KEY_EXCHANGE (REQ:KEY_EX_KEM_GEN, RSP:KEY_EX_KEM_ENCAP+KEY_EX_KEM_SIGN, REQ:KEY_EX_KEM_DECAP+KEY_EX_KEM_VERIFY), FINISH
+
+  See table below in microsecond (us) on Intel Core(TM) i7-8665U CPU @ 1.90 GHz.
+
+| Minimal Security Level | Configuration (KEM + SIG) | REQ TOTAL | REQ CERT_VERIFY | REQ CHAL_VERIFY | REQ KEY_EX_KEM_GEN | REQ KEY_EX_KEM_DECAP | REQ KEY_EX_VERIFY | REQ OTHER | RSP TOTAL | RSP CHAL_SIGN | RSP KEY_EX_KEM_ENCAP | RSP KEY_EX_SIGN | RSP OTHER |
+|------------------------|---------------------------|-----------|-----------------|-----------------|--------------------|----------------------|------------------|-----------|-----------|---------------|----------------------|-----------------|-----------|
+| 1 | p256 + rsa3072 | 4221 | 1122 | 382 | 764 | 798 | 312 | 843 | 27654 | 12345 | 1440 | 11729 | 2140 |
+| 1 | p256 + p256 | 6532 | 2444 | 774 | 778 | 834 | 856 | 846 | 7173 | 1153 | 1564 | 1107 | 3349 |
+| 1 | p256_Kyber512 + rsa3072_Dilithium2 | 8460 | 2840 | 1036 | 1220 | 1158 | 867 | 1339 | 37754 | 17860 | 1946 | 13312 | 4636 |
+| 1 | p256_Kyber512 + p256_Dilithium2 | 10035 | 3523 | 1616 | 1262 | 1100 | 1322 | 1212 | 15643 | 5703 | 1932 | 2613 | 5395 |
+| 1 | p256_Kyber512-90s + p256_Dilithium2-AES | 12487 | 4420 | 2246 | 1470 | 1333 | 1846 | 1172 | 22540 | 8431 | 2029 | 5955 | 6125 |
+| 1 | p256_Kyber512 + rsa3072_Falcon-512 | 6959 | 2039 | 809 | 1246 | 1092 | 724 | 1049 | 70909 | 35504 | 1886 | 30348 | 3171 |
+| 1 | p256_Kyber512 + p256_Falcon-512 | 9979 | 4084 | 1238 | 1286 | 1102 | 1142 | 1127 | 52858 | 24477 | 1868 | 19459 | 7054 |
+| 1 | p256_Kyber512 + rsa3072_SPHINCS+-Haraka-128f-robust | 63675 | 1350 | 30122 | 1381 | 1097 | 28365 | 1360 | 1390544 | 693364 | 2346 | 691652 | 3182 |
+| 1 | p256_Kyber512 + rsa3072_SPHINCS+-SHA256-128f-robust | 37504 | 1574 | 15799 | 1329 | 1137 | 16252 | 1413 | 742012 | 371809 | 2537 | 364104 | 3562 |
+| 1 | p256_Kyber512 + rsa3072_SPHINCS+-SHAKE256-128f-robust | 66093 | 1624 | 29687 | 1281 | 1090 | 30914 | 1497 | 1421568 | 711890 | 2328 | 703388 | 3962 |
+| 1 | p256_Kyber512 + p256_SPHINCS+-Haraka-128f-robust | 67132 | 2745 | 30269 | 1652 | 1128 | 30027 | 1311 | 1381466 | 693804 | 1986 | 681308 | 4368 |
+| 1 | p256_Kyber512 + p256_SPHINCS+-SHA256-128f-robust | 40367 | 2948 | 16216 | 1348 | 1407 | 16969 | 1479 | 718316 | 356253 | 1934 | 354718 | 5411 |
+| 1 | p256_Kyber512 + p256_SPHINCS+-SHAKE256-128f-robust | 70654 | 2875 | 31338 | 1391 | 1117 | 32430 | 1503 | 1421255 | 714763 | 1862 | 699748 | 4882 |
+| 3 | p384 + p384 | 12153 | 4125 | 1911 | 1734 | 1817 | 1652 | 914 | 13485 | 2271 | 3323 | 2249 | 5642 |
+| 3 | p384_Kyber768 + p384_Dilithium3 | 15988 | 5453 | 2487 | 2246 | 2122 | 2505 | 1175 | 38164 | 11942 | 4236 | 14198 | 7788 |
+| 3 | p384_Kyber768-90s + p384_Dilithium3-AES | 20576 | 7898 | 3337 | 2467 | 2472 | 3184 | 1218 | 35742 | 14643 | 3868 | 7618 | 9613 |
+| 3 | p384_Kyber768 + p521_Falcon-1024 | 21135 | 8727 | 3488 | 2230 | 2156 | 3468 | 1066 | 102333 | 46571 | 3641 | 42413 | 9708 |
+| 5 | p521 + p521 | 19276 | 6494 | 3024 | 3156 | 3054 | 2620 | 928 | 22061 | 4054 | 6741 | 3667 | 7599 |
+| 5 | p521_Kyber1024 + p521_Dilithium5 | 26725 | 9418 | 4164 | 3973 | 3808 | 4075 | 1287 | 44528 | 15565 | 7494 | 9018 | 12451 |
+| 5 | p521_Kyber1024-90s + p521_Dilithium5-AES | 33128 | 12020 | 5743 | 4331 | 4387 | 5345 | 1302 | 44406 | 13208 | 7288 | 8105 | 15805 |
+| 5 | p521_Kyber1024 + p521_Falcon-1024 | 24044 | 8469 | 3166 | 3660 | 4168 | 3337 | 1244 | 103345 | 45607 | 6522 | 39861 | 11355 |
+
+```
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_pub_key_mode RAW --hash SHA_256 --asym RSAPSS_3072
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_pub_key_mode RAW --hash SHA_256 --asym ECDSA_P256
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_kem KYBER_512 --pqc_pub_key_mode CERT --hash SHA_256 --asym RSAPSS_3072 --pqc_sig DILITHIUM_2
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_kem KYBER_512 --pqc_pub_key_mode CERT --hash SHA_256 --asym ECDSA_P256 --pqc_sig DILITHIUM_2
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_kem KYBER_512_90S --pqc_pub_key_mode CERT --hash SHA_256 --asym ECDSA_P256 --pqc_sig DILITHIUM_2_AES
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_kem KYBER_512 --pqc_pub_key_mode CERT --hash SHA_256 --asym RSAPSS_3072 --pqc_sig FALCON_512
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_kem KYBER_512 --pqc_pub_key_mode CERT --hash SHA_256 --asym ECDSA_P256 --pqc_sig FALCON_512
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --asym RSAPSS_3072 --pqc_sig SPHINCS_HARAKA_128F_ROBUST
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --asym RSAPSS_3072 --pqc_sig SPHINCS_SHA256_128F_ROBUST
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --asym RSAPSS_3072 --pqc_sig SPHINCS_SHAKE256_128F_ROBUST
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --asym ECDSA_P256 --pqc_sig SPHINCS_HARAKA_128F_ROBUST
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --asym ECDSA_P256 --pqc_sig SPHINCS_SHA256_128F_ROBUST
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --asym ECDSA_P256 --pqc_sig SPHINCS_SHAKE256_128F_ROBUST
+  spdm_perf_emu.exe  --dhe SECP_384_R1 --pqc_pub_key_mode RAW --hash SHA_384 --asym ECDSA_P384
+  spdm_perf_emu.exe  --dhe SECP_384_R1 --pqc_kem KYBER_768 --pqc_pub_key_mode CERT --hash SHA_384 --asym ECDSA_P384 --pqc_sig DILITHIUM_3
+  spdm_perf_emu.exe  --dhe SECP_384_R1 --pqc_kem KYBER_768_90S --pqc_pub_key_mode CERT --hash SHA_384 --asym ECDSA_P384 --pqc_sig DILITHIUM_3_AES
+  spdm_perf_emu.exe  --dhe SECP_384_R1 --pqc_kem KYBER_768 --pqc_pub_key_mode CERT --hash SHA_384 --asym ECDSA_P521 --pqc_sig FALCON_1024
+  spdm_perf_emu.exe  --dhe SECP_521_R1 --pqc_pub_key_mode RAW --hash SHA_512 --asym ECDSA_P521
+  spdm_perf_emu.exe  --dhe SECP_521_R1 --pqc_kem KYBER_1024 --pqc_pub_key_mode CERT --hash SHA_512 --asym ECDSA_P521 --pqc_sig DILITHIUM_5
+  spdm_perf_emu.exe  --dhe SECP_521_R1 --pqc_kem KYBER_1024_90S --pqc_pub_key_mode CERT --hash SHA_512 --asym ECDSA_P521 --pqc_sig DILITHIUM_5_AES
+  spdm_perf_emu.exe  --dhe SECP_521_R1 --pqc_kem KYBER_1024 --pqc_pub_key_mode CERT --hash SHA_512 --asym ECDSA_P521 --pqc_sig FALCON_1024
+```
 
 ## Known limitation
 This package is only the sample code to show the concept.

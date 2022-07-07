@@ -34,18 +34,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define PQC_CRYPTO_SIG_NID_FALCON_512                   (PQC_CRYPTO_SIG_NID_FALCON + 0)
 #define PQC_CRYPTO_SIG_NID_FALCON_1024                  (PQC_CRYPTO_SIG_NID_FALCON + 1)
 
-// RAINBOW
-#define PQC_CRYPTO_SIG_NID_RAINBOW                      0x10300
-#define PQC_CRYPTO_SIG_NID_RAINBOW_I_CLASSIC            (PQC_CRYPTO_SIG_NID_RAINBOW + 0)
-#define PQC_CRYPTO_SIG_NID_RAINBOW_I_CIRCUMZENITHAL     (PQC_CRYPTO_SIG_NID_RAINBOW + 1)
-#define PQC_CRYPTO_SIG_NID_RAINBOW_I_COMPRESSED         (PQC_CRYPTO_SIG_NID_RAINBOW + 2)
-#define PQC_CRYPTO_SIG_NID_RAINBOW_III_CLASSIC          (PQC_CRYPTO_SIG_NID_RAINBOW + 3)
-#define PQC_CRYPTO_SIG_NID_RAINBOW_III_CIRCUMZENITHAL   (PQC_CRYPTO_SIG_NID_RAINBOW + 4)
-#define PQC_CRYPTO_SIG_NID_RAINBOW_III_COMPRESSED       (PQC_CRYPTO_SIG_NID_RAINBOW + 5)
-#define PQC_CRYPTO_SIG_NID_RAINBOW_V_CLASSIC            (PQC_CRYPTO_SIG_NID_RAINBOW + 6)
-#define PQC_CRYPTO_SIG_NID_RAINBOW_V_CIRCUMZENITHAL     (PQC_CRYPTO_SIG_NID_RAINBOW + 7)
-#define PQC_CRYPTO_SIG_NID_RAINBOW_V_COMPRESSED         (PQC_CRYPTO_SIG_NID_RAINBOW + 8)
-
 // SPHINCS
 #define PQC_CRYPTO_SIG_NID_SPHINCS                      0x10400
 #define PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_128F_ROBUST   (PQC_CRYPTO_SIG_NID_SPHINCS + 0)
@@ -85,21 +73,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_256S_ROBUST (PQC_CRYPTO_SIG_NID_SPHINCS + 34)
 #define PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_256S_SIMPLE (PQC_CRYPTO_SIG_NID_SPHINCS + 35)
 
-// PICNIC
-#define PQC_CRYPTO_SIG_NID_PICNIC                       0x10500
-#define PQC_CRYPTO_SIG_NID_PICNIC_L1_FS                 (PQC_CRYPTO_SIG_NID_PICNIC + 0)
-#define PQC_CRYPTO_SIG_NID_PICNIC_L1_UR                 (PQC_CRYPTO_SIG_NID_PICNIC + 1)
-#define PQC_CRYPTO_SIG_NID_PICNIC_L1_FULL               (PQC_CRYPTO_SIG_NID_PICNIC + 2)
-#define PQC_CRYPTO_SIG_NID_PICNIC_L3_FS                 (PQC_CRYPTO_SIG_NID_PICNIC + 3)
-#define PQC_CRYPTO_SIG_NID_PICNIC_L3_UR                 (PQC_CRYPTO_SIG_NID_PICNIC + 4)
-#define PQC_CRYPTO_SIG_NID_PICNIC_L3_FULL               (PQC_CRYPTO_SIG_NID_PICNIC + 5)
-#define PQC_CRYPTO_SIG_NID_PICNIC_L5_FS                 (PQC_CRYPTO_SIG_NID_PICNIC + 6)
-#define PQC_CRYPTO_SIG_NID_PICNIC_L5_UR                 (PQC_CRYPTO_SIG_NID_PICNIC + 7)
-#define PQC_CRYPTO_SIG_NID_PICNIC_L5_FULL               (PQC_CRYPTO_SIG_NID_PICNIC + 8)
-#define PQC_CRYPTO_SIG_NID_PICNIC3_L1                   (PQC_CRYPTO_SIG_NID_PICNIC + 9)
-#define PQC_CRYPTO_SIG_NID_PICNIC3_L3                   (PQC_CRYPTO_SIG_NID_PICNIC + 10)
-#define PQC_CRYPTO_SIG_NID_PICNIC3_L5                   (PQC_CRYPTO_SIG_NID_PICNIC + 11)
-
 // BIKE
 #define PQC_CRYPTO_KEM_NID_BIKE                          0x20100
 #define PQC_CRYPTO_KEM_NID_BIKE1_L1_CPA                  (PQC_CRYPTO_KEM_NID_BIKE + 0)
@@ -135,37 +108,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define PQC_CRYPTO_KEM_NID_KYBER_768_90S                 (PQC_CRYPTO_KEM_NID_KYBER + 4)
 #define PQC_CRYPTO_KEM_NID_KYBER_1024_90S                (PQC_CRYPTO_KEM_NID_KYBER + 5)
 
-// NTRU
-#define PQC_CRYPTO_KEM_NID_NTRU                          0x20500
-#define PQC_CRYPTO_KEM_NID_NTRU_HPS_2048_509             (PQC_CRYPTO_KEM_NID_NTRU + 0)
-#define PQC_CRYPTO_KEM_NID_NTRU_HPS_2048_677             (PQC_CRYPTO_KEM_NID_NTRU + 1)
-#define PQC_CRYPTO_KEM_NID_NTRU_HPS_2048_821             (PQC_CRYPTO_KEM_NID_NTRU + 2)
-#define PQC_CRYPTO_KEM_NID_NTRU_HRSS_701                 (PQC_CRYPTO_KEM_NID_NTRU + 3)
-
-// NTRUPRIME
-#define PQC_CRYPTO_KEM_NID_NTRUPRIME                      0x20600
-#define PQC_CRYPTO_KEM_NID_NTRULPR653                     (PQC_CRYPTO_KEM_NID_NTRUPRIME + 0)
-#define PQC_CRYPTO_KEM_NID_NTRULPR761                     (PQC_CRYPTO_KEM_NID_NTRUPRIME + 1)
-#define PQC_CRYPTO_KEM_NID_NTRULPR857                     (PQC_CRYPTO_KEM_NID_NTRUPRIME + 2)
-#define PQC_CRYPTO_KEM_NID_SNTRUP653                      (PQC_CRYPTO_KEM_NID_NTRUPRIME + 3)
-#define PQC_CRYPTO_KEM_NID_SNTRUP761                      (PQC_CRYPTO_KEM_NID_NTRUPRIME + 4)
-#define PQC_CRYPTO_KEM_NID_SNTRUP857                      (PQC_CRYPTO_KEM_NID_NTRUPRIME + 5)
-
-// SABER
-#define PQC_CRYPTO_KEM_NID_SABER                          0x20700
-#define PQC_CRYPTO_KEM_NID_LIGHTSABER_KEM                 (PQC_CRYPTO_KEM_NID_SABER + 0)
-#define PQC_CRYPTO_KEM_NID_SABER_KEM                      (PQC_CRYPTO_KEM_NID_SABER + 1)
-#define PQC_CRYPTO_KEM_NID_FIRESABER_KEM                  (PQC_CRYPTO_KEM_NID_SABER + 2)
-
-// FRODOKEM
-#define PQC_CRYPTO_KEM_NID_FRODOKEM                       0x20800
-#define PQC_CRYPTO_KEM_NID_FRODOKEM_640_AES               (PQC_CRYPTO_KEM_NID_FRODOKEM + 0)
-#define PQC_CRYPTO_KEM_NID_FRODOKEM_640_SHAKE             (PQC_CRYPTO_KEM_NID_FRODOKEM + 1)
-#define PQC_CRYPTO_KEM_NID_FRODOKEM_976_AES               (PQC_CRYPTO_KEM_NID_FRODOKEM + 2)
-#define PQC_CRYPTO_KEM_NID_FRODOKEM_976_SHAKE             (PQC_CRYPTO_KEM_NID_FRODOKEM + 3)
-#define PQC_CRYPTO_KEM_NID_FRODOKEM_1344_AES              (PQC_CRYPTO_KEM_NID_FRODOKEM + 4)
-#define PQC_CRYPTO_KEM_NID_FRODOKEM_1344_SHAKE            (PQC_CRYPTO_KEM_NID_FRODOKEM + 5)
-
 // SIKE
 #define PQC_CRYPTO_KEM_NID_SIKE                           0x20900
 #define PQC_CRYPTO_KEM_NID_SIDH_P434                      (PQC_CRYPTO_KEM_NID_SIKE + 0)
@@ -184,6 +126,29 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define PQC_CRYPTO_KEM_NID_SIKE_P610_COMPRESSED           (PQC_CRYPTO_KEM_NID_SIKE + 13)
 #define PQC_CRYPTO_KEM_NID_SIKE_P751                      (PQC_CRYPTO_KEM_NID_SIKE + 14)
 #define PQC_CRYPTO_KEM_NID_SIKE_P751_COMPRESSED           (PQC_CRYPTO_KEM_NID_SIKE + 15)
+
+typedef struct {
+  char8 *name;
+  uintn nid;
+  // SIG and KEM
+  uintn length_public_key;
+  uintn length_secret_key;
+  // SIG
+  uintn length_signature;
+  // KEM
+  uintn length_ciphertext;
+  uintn length_shared_secret;
+} pqc_oqs_algo_table_t;
+
+pqc_oqs_algo_table_t *
+pqc_get_oqs_sig_algo_entry (
+  IN uintn  nid
+  );
+
+pqc_oqs_algo_table_t *
+pqc_get_oqs_kem_algo_entry (
+  IN uintn  nid
+  );
 
 /**
   This function returns the PQC SIG algorithm name.

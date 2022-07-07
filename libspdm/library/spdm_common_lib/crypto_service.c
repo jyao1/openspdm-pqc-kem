@@ -487,6 +487,7 @@ spdm_generate_challenge_auth_signature (
   uint8                         m1m2_buffer[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
   uintn                         m1m2_buffer_size;
   uint32                        *pqc_sigature_length_ptr;
+  boolean                       need_pqc_sig;
 
   m1m2_buffer_size = sizeof(m1m2_buffer);
   result = spdm_calculate_m1m2 (spdm_context, is_requester, &m1m2_buffer_size, &m1m2_buffer);
@@ -511,13 +512,18 @@ spdm_generate_challenge_auth_signature (
 
       pqc_sigature_length_ptr = (uint32 *)(signature + asym_signature_size);
       pqc_signature_size = spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
-      result = spdm_pqc_requester_data_sign (
-                spdm_context->connection_info.algorithm.pqc_req_sig_algo,
-                m1m2_buffer,
-                m1m2_buffer_size,
-                (uint8 *)(pqc_sigature_length_ptr + 1),
-                &pqc_signature_size
-                );
+      need_pqc_sig = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
+      if (need_pqc_sig) {
+        result = spdm_pqc_requester_data_sign (
+                  spdm_context->connection_info.algorithm.pqc_req_sig_algo,
+                  m1m2_buffer,
+                  m1m2_buffer_size,
+                  (uint8 *)(pqc_sigature_length_ptr + 1),
+                  &pqc_signature_size
+                  );
+      } else {
+        result = TRUE;
+      }
       *pqc_sigature_length_ptr = (uint32)pqc_signature_size;
     } else {
       asym_signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg) +
@@ -553,13 +559,18 @@ spdm_generate_challenge_auth_signature (
 
       pqc_sigature_length_ptr = (uint32 *)(signature + asym_signature_size);
       pqc_signature_size = spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
-      result = spdm_pqc_responder_data_sign (
-                spdm_context->connection_info.algorithm.pqc_sig_algo,
-                m1m2_buffer,
-                m1m2_buffer_size,
-                (uint8 *)(pqc_sigature_length_ptr + 1),
-                &pqc_signature_size
-                );
+      need_pqc_sig = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_sig_algo);
+      if (need_pqc_sig) {
+        result = spdm_pqc_responder_data_sign (
+                  spdm_context->connection_info.algorithm.pqc_sig_algo,
+                  m1m2_buffer,
+                  m1m2_buffer_size,
+                  (uint8 *)(pqc_sigature_length_ptr + 1),
+                  &pqc_signature_size
+                  );
+      } else {
+        result = TRUE;
+      }
       *pqc_sigature_length_ptr = (uint32)pqc_signature_size;
     } else {
       asym_signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
@@ -660,6 +671,7 @@ spdm_verify_challenge_auth_signature (
   void                                      *pqc_public_key;
   uintn                                     pqc_public_key_size;
   uint32                                    *pqc_sigature_length_ptr;
+  boolean                                   need_pqc_sig;
 
   m1m2_buffer_size = sizeof(m1m2_buffer);
   result = spdm_calculate_m1m2 (spdm_context, !is_requester, &m1m2_buffer_size, &m1m2_buffer);
@@ -692,7 +704,6 @@ spdm_verify_challenge_auth_signature (
       if (!result) {
         return FALSE;
       }
-
       result = spdm_asym_verify (
                 spdm_context->connection_info.algorithm.base_asym_algo,
                 spdm_context->connection_info.algorithm.bash_hash_algo,
@@ -708,23 +719,28 @@ spdm_verify_challenge_auth_signature (
       if (*pqc_sigature_length_ptr > pqc_signature_size) {
         return FALSE;
       }
-      result2 = spdm_get_pqc_peer_public_key (spdm_context, &pqc_public_key, &pqc_public_key_size);
-      if (!result2) {
-        return FALSE;
+      need_pqc_sig = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_sig_algo);
+      if (need_pqc_sig) {
+        result2 = spdm_get_pqc_peer_public_key (spdm_context, &pqc_public_key, &pqc_public_key_size);
+        if (!result2) {
+          return FALSE;
+        }
+        result2 = spdm_pqc_sig_set_public_key (spdm_context->connection_info.algorithm.pqc_sig_algo, pqc_public_key, pqc_public_key_size, &context);
+        if (!result2) {
+          return FALSE;
+        }
+        result2 = spdm_pqc_sig_verify (
+                  spdm_context->connection_info.algorithm.pqc_sig_algo,
+                  context,
+                  m1m2_buffer,
+                  m1m2_buffer_size,
+                  (uint8 *)(pqc_sigature_length_ptr + 1),
+                  *pqc_sigature_length_ptr
+                  );
+        spdm_pqc_sig_free (spdm_context->connection_info.algorithm.pqc_sig_algo, context);
+      } else {
+        result2 = TRUE;
       }
-      result2 = spdm_pqc_sig_set_public_key (spdm_context->connection_info.algorithm.pqc_sig_algo, pqc_public_key, pqc_public_key_size, &context);
-      if (!result2) {
-        return FALSE;
-      }
-      result2 = spdm_pqc_sig_verify (
-                spdm_context->connection_info.algorithm.pqc_sig_algo,
-                context,
-                m1m2_buffer,
-                m1m2_buffer_size,
-                (uint8 *)(pqc_sigature_length_ptr + 1),
-                *pqc_sigature_length_ptr
-                );
-      spdm_pqc_sig_free (spdm_context->connection_info.algorithm.pqc_sig_algo, context);
     } else {
       asym_signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
                             PQC_SIG_SIGNATURE_LENGTH_SIZE +
@@ -775,19 +791,24 @@ spdm_verify_challenge_auth_signature (
       if (*pqc_sigature_length_ptr > pqc_signature_size) {
         return FALSE;
       }
-      result2 = spdm_pqc_req_sig_set_public_key (spdm_context->connection_info.algorithm.pqc_req_sig_algo, pqc_public_key, pqc_public_key_size, &context);
-      if (!result2) {
-        return FALSE;
+      need_pqc_sig = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
+      if (need_pqc_sig) {
+        result2 = spdm_pqc_req_sig_set_public_key (spdm_context->connection_info.algorithm.pqc_req_sig_algo, pqc_public_key, pqc_public_key_size, &context);
+        if (!result2) {
+          return FALSE;
+        }
+        result2 = spdm_pqc_req_sig_verify (
+                  spdm_context->connection_info.algorithm.pqc_req_sig_algo,
+                  context,
+                  m1m2_buffer,
+                  m1m2_buffer_size,
+                  (uint8 *)(pqc_sigature_length_ptr + 1),
+                  *pqc_sigature_length_ptr
+                  );
+        spdm_pqc_req_sig_free (spdm_context->connection_info.algorithm.pqc_req_sig_algo, context);
+      } else {
+        result2 = TRUE;
       }
-      result2 = spdm_pqc_req_sig_verify (
-                spdm_context->connection_info.algorithm.pqc_req_sig_algo,
-                context,
-                m1m2_buffer,
-                m1m2_buffer_size,
-                (uint8 *)(pqc_sigature_length_ptr + 1),
-                *pqc_sigature_length_ptr
-                );
-      spdm_pqc_req_sig_free (spdm_context->connection_info.algorithm.pqc_req_sig_algo, context);
     } else {
       asym_signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg) +
                             PQC_SIG_SIGNATURE_LENGTH_SIZE +

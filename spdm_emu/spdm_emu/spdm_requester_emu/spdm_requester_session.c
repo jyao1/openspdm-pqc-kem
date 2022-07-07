@@ -143,7 +143,9 @@ do_session_via_spdm (
     return status;
   }
 
-  do_app_session_via_spdm (session_id);
+  if ((m_exe_session & EXE_SESSION_APP) != 0) {
+    do_app_session_via_spdm (session_id);
+  }
 
   if ((m_exe_session & EXE_SESSION_HEARTBEAT) != 0) {
     status = spdm_heartbeat (spdm_context, session_id);

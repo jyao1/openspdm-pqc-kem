@@ -99,7 +99,9 @@ spdm_responder_dispatch_message (
   }
 
   response_size = sizeof(response);
+perf_start (PERF_ID_RESPONDER);
   status = spdm_process_message (spdm_context, &session_id, request, request_size, response, &response_size);
+perf_stop (PERF_ID_RESPONDER);
   if (RETURN_ERROR(status)) {
     return status;
   }

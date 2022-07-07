@@ -227,7 +227,9 @@ try_spdm_challenge (
   signature = ptr;
   DEBUG((DEBUG_INFO, "signature (0x%x):\n", signature_size));
   internal_dump_hex (signature, signature_size);
+perf_start (PERF_ID_CHALLENG_SIG_VER);
   result = spdm_verify_challenge_auth_signature (spdm_context, TRUE, signature, signature_size);
+perf_stop (PERF_ID_CHALLENG_SIG_VER);
   if (!result) {
     spdm_context->error_state = SPDM_STATUS_ERROR_CERTIFICATE_FAILURE;
     return RETURN_SECURITY_VIOLATION;

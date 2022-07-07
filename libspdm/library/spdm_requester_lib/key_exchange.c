@@ -87,6 +87,7 @@ try_spdm_send_receive_key_exchange (
   uintn                                     pqc_kem_public_key_size;
   uintn                                     pqc_kem_cipher_text_size;
   boolean                                   result2;
+  boolean                                   need_pqc_kem;
 
   if (!spdm_is_capabilities_flag_supported(spdm_context, TRUE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_KEY_EX_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_KEY_EX_CAP)) {
     return RETURN_UNSUPPORTED;
@@ -117,6 +118,7 @@ try_spdm_send_receive_key_exchange (
   spdm_request.req_session_id = req_session_id;
   spdm_request.reserved = 0;
 
+perf_start (PERF_ID_KEY_EX_KEM_GEN);
   ptr = spdm_request.exchange_data;
   dhe_key_size = spdm_get_dhe_pub_key_size (spdm_context->connection_info.algorithm.dhe_named_group);
   dhe_context = spdm_secured_message_dhe_new (spdm_context->connection_info.algorithm.dhe_named_group);
@@ -126,12 +128,16 @@ try_spdm_send_receive_key_exchange (
   ptr += dhe_key_size;
 
   pqc_kem_public_key_size = spdm_get_pqc_kem_public_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
-  pqc_kem_context = spdm_secured_message_pqc_kem_new (spdm_context->connection_info.algorithm.pqc_kem_algo);
-  spdm_secured_message_pqc_kem_generate_key (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
-  spdm_secured_message_pqc_kem_get_public_key (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context, ptr, &pqc_kem_public_key_size);
-  DEBUG((DEBUG_INFO, "ClientKey PQC (0x%x):\n", pqc_kem_public_key_size));
-  internal_dump_hex (ptr, pqc_kem_public_key_size);
-  ptr += pqc_kem_public_key_size;
+  need_pqc_kem = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_kem_algo);
+  if (need_pqc_kem) {
+    pqc_kem_context = spdm_secured_message_pqc_kem_new (spdm_context->connection_info.algorithm.pqc_kem_algo);
+    spdm_secured_message_pqc_kem_generate_key (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
+    spdm_secured_message_pqc_kem_get_public_key (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context, ptr, &pqc_kem_public_key_size);
+    DEBUG((DEBUG_INFO, "ClientKey PQC (0x%x):\n", pqc_kem_public_key_size));
+    internal_dump_hex (ptr, pqc_kem_public_key_size);
+    ptr += pqc_kem_public_key_size;
+  }
+perf_stop (PERF_ID_KEY_EX_KEM_GEN);
 
   opaque_key_exchange_req_size = spdm_get_opaque_data_supported_version_data_size (spdm_context);
   *(uint16 *)ptr = (uint16)opaque_key_exchange_req_size;
@@ -316,7 +322,9 @@ try_spdm_send_receive_key_exchange (
   DEBUG((DEBUG_INFO, "signature (0x%x):\n", signature_size));
   internal_dump_hex (signature, signature_size);
   ptr += signature_size;
+perf_start (PERF_ID_KEY_EX_SIG_VER);
   result = spdm_verify_key_exchange_rsp_signature (spdm_context, session_info, signature, signature_size);
+perf_stop (PERF_ID_KEY_EX_SIG_VER);
   if (!result) {
     spdm_free_session_id (spdm_context, *session_id);
     spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
@@ -336,14 +344,20 @@ try_spdm_send_receive_key_exchange (
   //
   // Fill data to calc Secret for HMAC verification
   //
+perf_start (PERF_ID_KEY_EX_KEM_DECAP);
   result = spdm_secured_message_dhe_compute_key (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context, spdm_response.exchange_data, dhe_key_size, session_info->secured_message_context);
   spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
-  result2 = spdm_secured_message_pqc_kem_decap (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context, &spdm_response.exchange_data[dhe_key_size], pqc_kem_cipher_text_size, session_info->secured_message_context);
-  spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
+  if (need_pqc_kem) {
+    result2 = spdm_secured_message_pqc_kem_decap (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context, &spdm_response.exchange_data[dhe_key_size], pqc_kem_cipher_text_size, session_info->secured_message_context);
+    spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
+  } else {
+    result2 = TRUE;
+  }
   if (!result && !result2) {
     spdm_free_session_id (spdm_context, *session_id);
     return RETURN_SECURITY_VIOLATION;
   }
+perf_stop (PERF_ID_KEY_EX_KEM_DECAP);
 
   DEBUG ((DEBUG_INFO, "spdm_generate_session_handshake_key[%x]\n", *session_id));
   status = spdm_calculate_th1_hash (spdm_context, session_info, TRUE, th1_hash_data);

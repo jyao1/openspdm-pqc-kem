@@ -158,7 +158,9 @@ spdm_get_response_challenge_auth (
     spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
     return RETURN_SUCCESS;
   }
+perf_start (PERF_ID_CHALLENG_SIG_GEN);
   result = spdm_generate_challenge_auth_signature (spdm_context, FALSE, ptr);
+perf_stop (PERF_ID_CHALLENG_SIG_GEN);
   if (!result) {
     spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_UNSUPPORTED_REQUEST, SPDM_CHALLENGE_AUTH, response_size, response);
     return RETURN_SUCCESS;

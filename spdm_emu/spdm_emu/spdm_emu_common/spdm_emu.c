@@ -20,16 +20,16 @@ uint32  m_exe_connection = (0 |
                           EXE_CONNECTION_DIGEST |
                           EXE_CONNECTION_CERT |
                           EXE_CONNECTION_CHAL |
-                          EXE_CONNECTION_MEAS |
+                          // EXE_CONNECTION_MEAS |
                           0);
 
 uint32  m_exe_session = (0 |
                        EXE_SESSION_KEY_EX |
-                       EXE_SESSION_PSK |
+                       // EXE_SESSION_PSK |
                        // EXE_SESSION_NO_END |
-                       EXE_SESSION_KEY_UPDATE |
-                       EXE_SESSION_HEARTBEAT |
-                       EXE_SESSION_MEAS |
+                       // EXE_SESSION_KEY_UPDATE |
+                       // EXE_SESSION_HEARTBEAT |
+                       // EXE_SESSION_MEAS |
                        0);
 
 void
@@ -49,9 +49,9 @@ print_usage (
   printf ("   [--dhe FFDHE_2048|FFDHE_3072|FFDHE_4096|SECP_256_R1|SECP_384_R1|SECP_521_R1]\n");
   printf ("   [--aead AES_128_GCM|AES_256_GCM|CHACHA20_POLY1305]\n");
   printf ("   [--key_schedule HMAC_HASH]\n");
-  printf ("   [--pqc_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|RAINBOW_{I,III,V}_{CLASSIC,CIRCUMZENITHAL,COMPRESSED}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}|PICNIC{3*}_L{1,3,5}_{FS,UR,FULL}]\n");
-  printf ("   [--pqc_req_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|RAINBOW_{I,III,V}_{CLASSIC,CIRCUMZENITHAL,COMPRESSED}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}|PICNIC{3*}_L{1,3,5}_{FS,UR,FULL}]\n");
-  printf ("   [--pqc_kem BIKE1_{L1,L3}_{CPA,FO}|CLASSIC_MCELIECE_{348864,460896,6688128,6960119,8192128}{F*}|HQC_{128,192,256}|KYBER_{512,768,1024}{_90S*}|NTRU_{HPS_2048_{509,677,821},HRSS_701}|{NTRULPR,SNTRUP}{653,761,857}|{LIGHT,FIRE,*}SABER_KEM|FRODOKEM_{640,976,1344}_{AES,SHAKE}|SI{DH,KE}_P{434,503,610,751}{_COMPRESSED*}]\n");
+  printf ("   [--pqc_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}\n");
+  printf ("   [--pqc_req_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}\n");
+  printf ("   [--pqc_kem BIKE1_{L1,L3}_{CPA,FO}|CLASSIC_MCELIECE_{348864,460896,6688128,6960119,8192128}{F*}|HQC_{128,192,256}|KYBER_{512,768,1024}{_90S*}|SI{DH,KE}_P{434,503,610,751}{_COMPRESSED*}]\n");
   printf ("   [--pqc_pub_key_mode RAW|CERT]\n");
   printf ("   [--basic_mut_auth NO|BASIC]\n");
   printf ("   [--mut_auth NO|WO_ENCAP|W_ENCAP|DIGESTS]\n");
@@ -64,7 +64,7 @@ print_usage (
   printf ("   [--load_state <NegotiateStateFileName>]\n");
   printf ("   [--exe_mode SHUTDOWN|CONTINUE]\n");
   printf ("   [--exe_conn VER_ONLY|DIGEST|CERT|CHAL|MEAS]\n");
-  printf ("   [--exe_session KEY_EX|PSK|NO_END|KEY_UPDATE|HEARTBEAT|MEAS]\n");
+  printf ("   [--exe_session KEY_EX|PSK|NO_END|KEY_UPDATE|HEARTBEAT|MEAS|APP]\n");
   printf ("   [--pcap <pcap_file_name>]\n");
   printf ("\n");
   printf ("NOTE:\n");
@@ -89,8 +89,8 @@ print_usage (
   printf ("           SHA3 is not supported so far.\n");
   printf ("           For pqc CERT mode, only a limited set of hybrid algorithm can be used. Please refer to readme.\n");
   printf ("   [--pqc_pub_key_mode] RAW means separated binary public key. CERT means hybrid X509 certificate. By default, RAW is used.\n");
-  printf ("   [--basic_mut_auth] is the basic mutual authentication policy. BASIC is used in CHALLENGE_AUTH. By default, BASIC is used.\n");
-  printf ("   [--mut_auth] is the mutual authentication policy. WO_ENCAP, W_ENCAP or DIGESTS is used in KEY_EXCHANGE_RSP. By default, W_ENCAP is used.\n");
+  printf ("   [--basic_mut_auth] is the basic mutual authentication policy. BASIC is used in CHALLENGE_AUTH. By default, NO is used.\n");
+  printf ("   [--mut_auth] is the mutual authentication policy. WO_ENCAP, W_ENCAP or DIGESTS is used in KEY_EXCHANGE_RSP. By default, NO is used.\n");
   printf ("   [--meas_sum] is the measurment summary hash type in CHALLENGE_AUTH, KEY_EXCHANGE_RSP and PSK_EXCHANGE_RSP. By default, ALL is used.\n");
   printf ("   [--meas_op] is the measurement operation in GET_MEASUREMEMT. By default, ONE_BY_ONE is used.\n");
   printf ("   [--key_upd] is the key update operation in KEY_UPDATE. By default, ALL is used. RSP will trigger encapsulated KEY_UPDATE.\n");
@@ -112,19 +112,20 @@ print_usage (
   printf ("   [--exe_mode] is used to control the execution mode. By default, it is SHUTDOWN.\n");
   printf ("           SHUTDOWN means the requester asks the responder to stop.\n");
   printf ("           CONTINUE means the requester asks the responder to preserve the current SPDM context.\n");
-  printf ("   [--exe_conn] is used to control the SPDM connection. By default, it is DIGEST,CERT,CHAL,MEAS.\n");
+  printf ("   [--exe_conn] is used to control the SPDM connection. By default, it is DIGEST,CERT,CHAL.\n");
   printf ("           VER_ONLY means REQUESTER does not send GET_CAPABILITIES/NEGOTIATE_ALGORITHMS. It is used for quick symmetric authentication with PSK.\n");
   printf ("           DIGEST means send GET_DIGESTS command.\n");
   printf ("           CERT means send GET_CERTIFICATE command.\n");
   printf ("           CHAL means send CHALLENGE command.\n");
   printf ("           MEAS means send GET_MEASUREMENT command.\n");
-  printf ("   [--exe_session] is used to control the SPDM session. By default, it is KEY_EX,PSK,KEY_UPDATE,HEARTBEAT,MEAS.\n");
+  printf ("   [--exe_session] is used to control the SPDM session. By default, it is KEY_EX.\n");
   printf ("           KEY_EX means to setup KEY_EXCHANGE session.\n");
   printf ("           PSK means to setup PSK_EXCHANGE session.\n");
   printf ("           NO_END means to not send END_SESSION.\n");
   printf ("           KEY_UPDATE means to send KEY_UPDATE in session.\n");
   printf ("           HEARTBEAT means to send HEARTBEAT in session.\n");
   printf ("           MEAS means send GET_MEASUREMENT command in session.\n");
+  printf ("           APP means send application command in session.\n");
   printf ("   [--pcap] is used to generate PCAP dump file for offline analysis.\n");
   fprintf (stdout, "\n");
 }
@@ -249,16 +250,6 @@ value_string_entry_t  m_pqc_sig_value_string_table[] = {
   {PQC_CRYPTO_SIG_NID_FALCON_512,                  "FALCON_512"},
   {PQC_CRYPTO_SIG_NID_FALCON_1024,                 "FALCON_1024"},
 
-  {PQC_CRYPTO_SIG_NID_RAINBOW_I_CLASSIC,           "RAINBOW_I_CLASSIC"},
-  {PQC_CRYPTO_SIG_NID_RAINBOW_I_CIRCUMZENITHAL,    "RAINBOW_I_CIRCUMZENITHAL"},
-  {PQC_CRYPTO_SIG_NID_RAINBOW_I_COMPRESSED,        "RAINBOW_I_COMPRESSED"},
-  {PQC_CRYPTO_SIG_NID_RAINBOW_III_CLASSIC,         "RAINBOW_III_CLASSIC"},
-  {PQC_CRYPTO_SIG_NID_RAINBOW_III_CIRCUMZENITHAL,  "RAINBOW_III_CIRCUMZENITHAL"},
-  {PQC_CRYPTO_SIG_NID_RAINBOW_III_COMPRESSED,      "RAINBOW_III_COMPRESSED"},
-  {PQC_CRYPTO_SIG_NID_RAINBOW_V_CLASSIC,           "RAINBOW_V_CLASSIC"},
-  {PQC_CRYPTO_SIG_NID_RAINBOW_V_CIRCUMZENITHAL,    "RAINBOW_V_CIRCUMZENITHAL"},
-  {PQC_CRYPTO_SIG_NID_RAINBOW_V_COMPRESSED,        "RAINBOW_V_COMPRESSED"},
-
   {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_128F_ROBUST,  "SPHINCS_HARAKA_128F_ROBUST"},
   {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_128F_SIMPLE,  "SPHINCS_HARAKA_128F_SIMPLE"},
   {PQC_CRYPTO_SIG_NID_SPHINCS_HARAKA_128S_ROBUST,  "SPHINCS_HARAKA_128S_ROBUST"},
@@ -297,19 +288,6 @@ value_string_entry_t  m_pqc_sig_value_string_table[] = {
   {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_256F_SIMPLE,  "SPHINCS_SHAKE256_256F_SIMPLE"},
   {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_256S_ROBUST,  "SPHINCS_SHAKE256_256S_ROBUST"},
   {PQC_CRYPTO_SIG_NID_SPHINCS_SHAKE256_256S_SIMPLE,  "SPHINCS_SHAKE256_256S_SIMPLE"},
-
-  {PQC_CRYPTO_SIG_NID_PICNIC_L1_FS,                "PICNIC_L1_FS"},
-  {PQC_CRYPTO_SIG_NID_PICNIC_L1_UR,                "PICNIC_L1_UR"},
-  {PQC_CRYPTO_SIG_NID_PICNIC_L1_FULL,              "PICNIC_L1_FULL"},
-  {PQC_CRYPTO_SIG_NID_PICNIC_L3_FS,                "PICNIC_L3_FS"},
-  {PQC_CRYPTO_SIG_NID_PICNIC_L3_UR,                "PICNIC_L3_UR"},
-  {PQC_CRYPTO_SIG_NID_PICNIC_L3_FULL,              "PICNIC_L3_FULL"},
-  {PQC_CRYPTO_SIG_NID_PICNIC_L5_FS,                "PICNIC_L5_FS"},
-  {PQC_CRYPTO_SIG_NID_PICNIC_L5_UR,                "PICNIC_L5_UR"},
-  {PQC_CRYPTO_SIG_NID_PICNIC_L5_FULL,              "PICNIC_L5_FULL"},
-  {PQC_CRYPTO_SIG_NID_PICNIC3_L1,                  "PICNIC3_L1"},
-  {PQC_CRYPTO_SIG_NID_PICNIC3_L3,                  "PICNIC3_L3"},
-  {PQC_CRYPTO_SIG_NID_PICNIC3_L5,                  "PICNIC3_L5"},
 };
 
 value_string_entry_t  m_pqc_kem_value_string_table[] = {
@@ -339,29 +317,6 @@ value_string_entry_t  m_pqc_kem_value_string_table[] = {
   {PQC_CRYPTO_KEM_NID_KYBER_512_90S,                "KYBER_512_90S"},
   {PQC_CRYPTO_KEM_NID_KYBER_768_90S,                "KYBER_768_90S"},
   {PQC_CRYPTO_KEM_NID_KYBER_1024_90S,               "KYBER_1024_90S"},
-
-  {PQC_CRYPTO_KEM_NID_NTRU_HPS_2048_509,            "NTRU_HPS_2048_509"},
-  {PQC_CRYPTO_KEM_NID_NTRU_HPS_2048_677,            "NTRU_HPS_2048_677"},
-  {PQC_CRYPTO_KEM_NID_NTRU_HPS_2048_821,            "NTRU_HPS_2048_821"},
-  {PQC_CRYPTO_KEM_NID_NTRU_HRSS_701,                "NTRU_HRSS_701"},
-
-  {PQC_CRYPTO_KEM_NID_NTRULPR653,                   "NTRULPR653"},
-  {PQC_CRYPTO_KEM_NID_NTRULPR761,                   "NTRULPR761"},
-  {PQC_CRYPTO_KEM_NID_NTRULPR857,                   "NTRULPR857"},
-  {PQC_CRYPTO_KEM_NID_SNTRUP653,                    "SNTRUP653"},
-  {PQC_CRYPTO_KEM_NID_SNTRUP761,                    "SNTRUP761"},
-  {PQC_CRYPTO_KEM_NID_SNTRUP857,                    "SNTRUP857"},
-
-  {PQC_CRYPTO_KEM_NID_LIGHTSABER_KEM,               "LIGHTSABER_KEM"},
-  {PQC_CRYPTO_KEM_NID_SABER_KEM,                    "SABER_KEM"},
-  {PQC_CRYPTO_KEM_NID_FIRESABER_KEM,                "FIRESABER_KEM"},
-
-  {PQC_CRYPTO_KEM_NID_FRODOKEM_640_AES,             "FRODOKEM_640_AES"},
-  {PQC_CRYPTO_KEM_NID_FRODOKEM_640_SHAKE,           "FRODOKEM_640_SHAKE"},
-  {PQC_CRYPTO_KEM_NID_FRODOKEM_976_AES,             "FRODOKEM_976_AES"},
-  {PQC_CRYPTO_KEM_NID_FRODOKEM_976_SHAKE,           "FRODOKEM_976_SHAKE"},
-  {PQC_CRYPTO_KEM_NID_FRODOKEM_1344_AES,            "FRODOKEM_1344_AES"},
-  {PQC_CRYPTO_KEM_NID_FRODOKEM_1344_SHAKE,          "FRODOKEM_1344_SHAKE"},
 
   {PQC_CRYPTO_KEM_NID_SIDH_P434,                    "SIDH_P434"},
   {PQC_CRYPTO_KEM_NID_SIDH_P434_COMPRESSED,         "SIDH_P434_COMPRESSED"},
@@ -458,6 +413,7 @@ value_string_entry_t  m_exe_session_string_table[] = {
   {EXE_SESSION_KEY_UPDATE, "KEY_UPDATE"},
   {EXE_SESSION_HEARTBEAT,  "HEARTBEAT"},
   {EXE_SESSION_MEAS,       "MEAS"},
+  {EXE_SESSION_APP,        "APP"},
 };
 
 boolean
@@ -689,7 +645,7 @@ process_args (
           print_usage (program_name);
           exit (0);
         }
-        printf ("hash - 0x%08x\n", m_support_hash_algo);
+        //printf ("hash - 0x%08x\n", m_support_hash_algo);
         argc -= 2;
         argv += 2;
         continue;
@@ -708,7 +664,7 @@ process_args (
           exit (0);
         }
         m_support_measurement_spec = (uint8)data32;
-        printf ("meas_spec - 0x%02x\n", m_support_measurement_spec);
+        //printf ("meas_spec - 0x%02x\n", m_support_measurement_spec);
         argc -= 2;
         argv += 2;
         continue;
@@ -726,7 +682,7 @@ process_args (
           print_usage (program_name);
           exit (0);
         }
-        printf ("meas_hash - 0x%08x\n", m_support_measurement_hash_algo);
+        //printf ("meas_hash - 0x%08x\n", m_support_measurement_hash_algo);
         argc -= 2;
         argv += 2;
         continue;
@@ -744,7 +700,7 @@ process_args (
           print_usage (program_name);
           exit (0);
         }
-        printf ("asym - 0x%08x\n", m_support_asym_algo);
+        //printf ("asym - 0x%08x\n", m_support_asym_algo);
         argc -= 2;
         argv += 2;
         continue;
@@ -763,7 +719,7 @@ process_args (
           exit (0);
         }
         m_support_req_asym_algo = (uint16)data32;
-        printf ("req_asym - 0x%04x\n", m_support_req_asym_algo);
+        //printf ("req_asym - 0x%04x\n", m_support_req_asym_algo);
         argc -= 2;
         argv += 2;
         continue;
@@ -782,7 +738,7 @@ process_args (
           exit (0);
         }
         m_support_dhe_algo = (uint16)data32;
-        printf ("dhe - 0x%04x\n", m_support_dhe_algo);
+        //printf ("dhe - 0x%04x\n", m_support_dhe_algo);
         argc -= 2;
         argv += 2;
         continue;
@@ -801,7 +757,7 @@ process_args (
           exit (0);
         }
         m_support_aead_algo = (uint16)data32;
-        printf ("aead - 0x%04x\n", m_support_aead_algo);
+        //printf ("aead - 0x%04x\n", m_support_aead_algo);
         argc -= 2;
         argv += 2;
         continue;
@@ -820,7 +776,7 @@ process_args (
           exit (0);
         }
         m_support_key_schedule_algo = (uint16)data32;
-        printf ("key_schedule - 0x%04x\n", m_support_key_schedule_algo);
+        //printf ("key_schedule - 0x%04x\n", m_support_key_schedule_algo);
         argc -= 2;
         argv += 2;
         continue;
@@ -838,9 +794,9 @@ process_args (
           print_usage (program_name);
           exit (0);
         }
-        printf ("pqc_sig - ");
-        dump_hex_str (m_support_pqc_sig_algo, sizeof(pqc_algo_t));
-        printf ("\n");
+        //printf ("pqc_sig - ");
+        //dump_hex_str (m_support_pqc_sig_algo, sizeof(pqc_algo_t));
+        //printf ("\n");
         argc -= 2;
         argv += 2;
         continue;
@@ -858,9 +814,9 @@ process_args (
           print_usage (program_name);
           exit (0);
         }
-        printf ("pqc_req_sig - ");
-        dump_hex_str (m_support_pqc_req_sig_algo, sizeof(pqc_algo_t));
-        printf ("\n");
+        //printf ("pqc_req_sig - ");
+        //dump_hex_str (m_support_pqc_req_sig_algo, sizeof(pqc_algo_t));
+        //printf ("\n");
         argc -= 2;
         argv += 2;
         continue;
@@ -878,9 +834,9 @@ process_args (
           print_usage (program_name);
           exit (0);
         }
-        printf ("pqc_kem - ");
-        dump_hex_str (m_support_pqc_kem_algo, sizeof(pqc_algo_t));
-        printf ("\n");
+        //printf ("pqc_kem - ");
+        //dump_hex_str (m_support_pqc_kem_algo, sizeof(pqc_algo_t));
+        //printf ("\n");
         argc -= 2;
         argv += 2;
         continue;
@@ -898,7 +854,7 @@ process_args (
           print_usage (program_name);
           exit (0);
         }
-        printf ("pqc_pub_key_mode - 0x%08x\n", m_pqc_pub_key_mode);
+        //printf ("pqc_pub_key_mode - 0x%08x\n", m_pqc_pub_key_mode);
         argc -= 2;
         argv += 2;
         continue;

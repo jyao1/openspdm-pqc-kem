@@ -51,7 +51,9 @@ spdm_send_request (
     return status;
   }
 
+perf_stop (PERF_ID_REQUESTER);
   status = spdm_context->send_message (spdm_context, message_size, message, 0);
+perf_start (PERF_ID_REQUESTER);
   if (RETURN_ERROR(status)) {
     DEBUG((DEBUG_INFO, "spdm_send_spdm_request[%x] status - %p\n", (session_id != NULL) ? *session_id : 0x0, status));
   }
@@ -96,7 +98,9 @@ spdm_receive_response (
   ASSERT (*response_size <= MAX_SPDM_MESSAGE_BUFFER_SIZE);
 
   message_size = sizeof(message);
+perf_stop (PERF_ID_REQUESTER);
   status = spdm_context->receive_message (spdm_context, &message_size, message, 0);
+perf_start (PERF_ID_REQUESTER);
   if (RETURN_ERROR(status)) {
     DEBUG((DEBUG_INFO, "spdm_receive_spdm_response[%x] status - %p\n", (session_id != NULL) ? *session_id : 0x0, status));
     return status;

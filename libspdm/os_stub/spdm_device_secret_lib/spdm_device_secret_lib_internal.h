@@ -174,7 +174,7 @@ read_input_file (
   );
 
 void
-dump_hex_str (
+internal_dump_hex_str (
   IN uint8 *buffer,
   IN uintn buffer_size
   );

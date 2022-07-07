@@ -183,7 +183,7 @@ platform_client_routine (
   }
 
   // Do test - begin
-
+perf_start (PERF_ID_REQUESTER);
   status = do_authentication_via_spdm ();
   if (RETURN_ERROR(status)) {
     printf ("do_authentication_via_spdm - %x\n", (uint32)status);
@@ -215,7 +215,7 @@ platform_client_routine (
       }
     }
   }
-
+perf_stop (PERF_ID_REQUESTER);
   // Do test - end
 
 done:
@@ -256,6 +256,9 @@ int main (
   platform_client_routine (DEFAULT_SPDM_PLATFORM_PORT);
   printf ("Client stopped\n");
 
+  perf_dump ();
+
   close_pcap_packet_file ();
+
   return 0;
 }

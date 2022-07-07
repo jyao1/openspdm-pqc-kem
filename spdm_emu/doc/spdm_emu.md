@@ -17,9 +17,9 @@ This document describes spdm_requester_emu and spdm_responder_emu tool. It can b
          [--dhe FFDHE_2048|FFDHE_3072|FFDHE_4096|SECP_256_R1|SECP_384_R1|SECP_521_R1]
          [--aead AES_128_GCM|AES_256_GCM|CHACHA20_POLY1305]
          [--key_schedule HMAC_HASH]
-         [--pqc_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|RAINBOW_{I,III,V}_{CLASSIC,CIRCUMZENITHAL,COMPRESSED}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}|PICNIC{3*}_L{1,3,5}_{FS,UR,FULL}]
-         [--pqc_req_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|RAINBOW_{I,III,V}_{CLASSIC,CIRCUMZENITHAL,COMPRESSED}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}|PICNIC{3*}_L{1,3,5}_{FS,UR,FULL}]
-         [--pqc_kem BIKE1_{L1,L3}_{CPA,FO}|CLASSIC_MCELIECE_{348864,460896,6688128,6960119,8192128}{F*}|HQC_{128,192,256}|KYBER_{512,768,1024}{_90S*}|NTRU_{HPS_2048_{509,677,821},HRSS_701}|{NTRULPR,SNTRUP}{653,761,857}|{LIGHT,FIRE,*}SABER_KEM|FRODOKEM_{640,976,1344}_{AES,SHAKE}|SI{DH,KE}_P{434,503,610,751}{_COMPRESSED*}]
+         [--pqc_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}
+         [--pqc_req_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}
+         [--pqc_kem BIKE1_{L1,L3}_{CPA,FO}|CLASSIC_MCELIECE_{348864,460896,6688128,6960119,8192128}{F*}|HQC_{128,192,256}|KYBER_{512,768,1024}{_90S*}|SI{DH,KE}_P{434,503,610,751}{_COMPRESSED*}]
          [--pqc_pub_key_mode RAW|CERT]
          [--basic_mut_auth NO|BASIC]
          [--mut_auth NO|WO_ENCAP|W_ENCAP|DIGESTS]
@@ -32,7 +32,7 @@ This document describes spdm_requester_emu and spdm_responder_emu tool. It can b
          [--load_state <NegotiateStateFileName>]
          [--exe_mode SHUTDOWN|CONTINUE]
          [--exe_conn VER_ONLY|DIGEST|CERT|CHAL|MEAS]
-         [--exe_session KEY_EX|PSK|NO_END|KEY_UPDATE|HEARTBEAT|MEAS]
+         [--exe_session KEY_EX|PSK|NO_END|KEY_UPDATE|HEARTBEAT|MEAS|APP]
          [--pcap <PcapFileName>]
 
       NOTE:
@@ -52,7 +52,7 @@ This document describes spdm_requester_emu and spdm_responder_emu tool. It can b
          [--key_schedule] is key schedule algorithm. By default, HMAC_HASH is used.
          [--pqc_sig] is PQC sigature algorithm. By default, FALCON_1024,SPHINCS_{HARAKA,SHA256,SHAKE256}_128F_ROBUST is used.
          [--pqc_req_sig] is PQC requester sigature algorithm. By default, FALCON_512 is used.
-         [--pqc_kem] is PQC key exchange algorithm. By default, KYBER_512,FRODOKEM_640_AES is used.
+         [--pqc_kem] is PQC key exchange algorithm. By default, KYBER_512 is used.
                  Above algorithms also support multiple flags. Please use ',' for them.
                  SHA3 is not supported so far.
                  For pqc CERT mode, only a limited set of hybrid algorithm can be used. Please refer to readme.
@@ -85,13 +85,14 @@ This document describes spdm_requester_emu and spdm_responder_emu tool. It can b
                  CERT means send GET_CERTIFICATE command.
                  CHAL means send CHALLENGE command.
                  MEAS means send GET_MEASUREMENT command.
-         [--exe_session] is used to control the SPDM session. By default, it is KEY_EX,PSK,KEY_UPDATE,HEARTBEAT,MEAS.
+         [--exe_session] is used to control the SPDM session. By default, it is KEY_EX,PSK,KEY_UPDATE,HEARTBEAT,MEAS,APP.
                  KEY_EX means to setup KEY_EXCHANGE session.
                  PSK means to setup PSK_EXCHANGE session.
                  NO_END means to not send END_SESSION.
                  KEY_UPDATE means to send KEY_UPDATE in session.
                  HEARTBEAT means to send HEARTBEAT in session.
                  MEAS means send GET_MEASUREMENT command in session.
+                 APP means send application command in session.
          [--pcap] is used to generate PCAP dump file for offline analysis.
    </pre>
 

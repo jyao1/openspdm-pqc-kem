@@ -19,11 +19,12 @@ SET(src_spdm_responder_emu
     ${PROJECT_SOURCE_DIR}/spdm_emu/spdm_emu_common/nv_storage.c
     ${PROJECT_SOURCE_DIR}/spdm_emu/spdm_emu_common/pcap.c
     ${PROJECT_SOURCE_DIR}/spdm_emu/spdm_emu_common/support.c
+    ${PROJECT_SOURCE_DIR}/spdm_emu/spdm_emu_common/perf.c
 )
 
 SET(spdm_responder_emu_LIBRARY
     memlib
-    debuglib
+    debuglib_null
     spdm_responder_lib
     spdm_common_lib
     ${CRYPTO}lib
@@ -44,7 +45,7 @@ if((TOOLCHAIN STREQUAL "KLEE") OR (TOOLCHAIN STREQUAL "CBMC"))
     ADD_EXECUTABLE(spdm_responder_emu
                    ${src_spdm_responder_emu}
                    $<TARGET_OBJECTS:memlib>
-                   $<TARGET_OBJECTS:debuglib>
+                   $<TARGET_OBJECTS:debuglib_null>
                    $<TARGET_OBJECTS:spdm_responder_lib>
                    $<TARGET_OBJECTS:spdm_common_lib>
                    $<TARGET_OBJECTS:${CRYPTO}lib>
