@@ -38,6 +38,8 @@ typedef struct {
   pqc_algo_t           pqc_sig_algo;
   pqc_algo_t           pqc_kem_algo;
   pqc_algo_t           pqc_req_sig_algo;
+  pqc_algo_t           pqc_kem_auth_algo;
+  pqc_algo_t           pqc_req_kem_auth_algo;
 } spdm_device_algorithm_t;
 
 typedef struct {
@@ -78,6 +80,16 @@ typedef struct {
   //
   void                            *pqc_peer_public_key_provision;
   uintn                           pqc_peer_public_key_provision_size;
+  //
+  // My PQC kem_auth pubkey
+  //
+  void                            *pqc_local_kem_auth_public_key_provision[MAX_SPDM_SLOT_COUNT];
+  uintn                           pqc_local_kem_auth_public_key_provision_size[MAX_SPDM_SLOT_COUNT];
+  //
+  // Peer PQC kem_auth pubkey
+  //
+  void                            *pqc_peer_kem_auth_public_key_provision;
+  uintn                           pqc_peer_kem_auth_public_key_provision_size;
   //
   // PSK provision locally
   //
@@ -166,9 +178,9 @@ typedef struct {
   //
   small_managed_buffer_t            message_a;
   large_managed_buffer_t            message_b;
-  small_managed_buffer_t            message_c;
+  large_managed_buffer_t            message_c;
   large_managed_buffer_t            message_mut_b;
-  small_managed_buffer_t            message_mut_c;
+  large_managed_buffer_t            message_mut_c;
   //
   // signature = Sign(SK, hash(L1))
   // Verify(PK, hash(L2), signature)
@@ -640,6 +652,15 @@ spdm_generate_challenge_auth_signature (
      OUT uint8                      *signature
   );
 
+boolean
+spdm_generate_challenge_auth_hmac (
+  IN     spdm_context_t        *spdm_context,
+  IN     boolean                    is_requester,
+     OUT uint8                      *hmac,
+  IN     uint8                      *shared_key,
+  IN     uintn                      shared_key_size
+  );
+
 /**
   This function verifies the certificate chain hash.
 
@@ -674,6 +695,15 @@ spdm_verify_challenge_auth_signature (
   IN  boolean                      is_requester,
   IN  void                         *sign_data,
   IN  uintn                        sign_data_size
+  );
+
+boolean
+spdm_verify_challenge_auth_hmac (
+  IN     spdm_context_t        *spdm_context,
+  IN     boolean                    is_requester,
+  IN     uint8                      *hmac,
+  IN     uint8                      *shared_key,
+  IN     uintn                      shared_key_size
   );
 
 /**

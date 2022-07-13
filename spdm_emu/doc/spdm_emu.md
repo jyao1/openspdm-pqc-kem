@@ -20,6 +20,8 @@ This document describes spdm_requester_emu and spdm_responder_emu tool. It can b
          [--pqc_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}
          [--pqc_req_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}
          [--pqc_kem BIKE1_{L1,L3}_{CPA,FO}|CLASSIC_MCELIECE_{348864,460896,6688128,6960119,8192128}{F*}|HQC_{128,192,256}|KYBER_{512,768,1024}{_90S*}|SI{DH,KE}_P{434,503,610,751}{_COMPRESSED*}]
+         [--pqc_kem_auth BIKE1_{L1,L3}_{CPA,FO}|CLASSIC_MCELIECE_{348864,460896,6688128,6960119,8192128}{F*}|HQC_{128,192,256}|KYBER_{512,768,1024}{_90S*}|SI{DH,KE}_P{434,503,610,751}{_COMPRESSED*}]
+         [--pqc_req_kem_auth BIKE1_{L1,L3}_{CPA,FO}|CLASSIC_MCELIECE_{348864,460896,6688128,6960119,8192128}{F*}|HQC_{128,192,256}|KYBER_{512,768,1024}{_90S*}|SI{DH,KE}_P{434,503,610,751}{_COMPRESSED*}]
          [--pqc_pub_key_mode RAW|CERT]
          [--basic_mut_auth NO|BASIC]
          [--mut_auth NO|WO_ENCAP|W_ENCAP|DIGESTS]
@@ -50,9 +52,11 @@ This document describes spdm_requester_emu and spdm_responder_emu tool. It can b
          [--dhe] is DHE algorithm. By default, SECP_384_R1,SECP_256_R1,FFDHE_3072,FFDHE_2048 is used.
          [--aead] is AEAD algorithm. By default, AES_256_GCM,CHACHA20_POLY1305 is used.
          [--key_schedule] is key schedule algorithm. By default, HMAC_HASH is used.
-         [--pqc_sig] is PQC sigature algorithm. By default, FALCON_1024,SPHINCS_{HARAKA,SHA256,SHAKE256}_128F_ROBUST is used.
-         [--pqc_req_sig] is PQC requester sigature algorithm. By default, FALCON_512 is used.
-         [--pqc_kem] is PQC key exchange algorithm. By default, KYBER_512 is used.
+         [--pqc_sig] is PQC sigature algorithm.
+         [--pqc_req_sig] is PQC requester sigature algorithm.
+         [--pqc_kem] is PQC key exchange algorithm.
+         [--pqc_kem_auth] is PQC requester KEM authentication algorithm.
+         [--pqc_req_kem_auth] is PQC requester KEM authentication algorithm.
                  Above algorithms also support multiple flags. Please use ',' for them.
                  SHA3 is not supported so far.
                  For pqc CERT mode, only a limited set of hybrid algorithm can be used. Please refer to readme.

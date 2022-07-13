@@ -264,6 +264,58 @@ For hybrid singing, the message to be signed is hashed using the SHA-2 hash func
   spdm_perf_emu.exe  --dhe SECP_521_R1 --pqc_kem KYBER_1024 --pqc_pub_key_mode CERT --hash SHA_512 --asym ECDSA_P521 --pqc_sig FALCON_1024
 ```
 
+Data with KEM-Auth:
+
+| Minimal Security Level | Configuration (KEM + SIG/KEM_AUTH) | REQ TOTAL | REQ CERT_VERIFY | REQ CHAL_VERIFY | REQ CHAL_KEM_AUTH_ENCAP | REQ KEY_EX_KEM_GEN | REQ KEY_EX_KEM_DECAP | REQ KEY_EX_VERIFY | REQ KEY_EX_KEM_AUTH_ENCAP | REQ OTHER | RSP TOTAL | RSP CHAL_SIGN | RSP CHAL_KEM_AUTH_DECAP | RSP KEY_EX_KEM_ENCAP | RSP KEY_EX_SIGN | RSP KEY_EX_KEM_AUTH_DECAP | RSP OTHER |
+|------------------------|---------------------------|-----------|-----------------|-----------------|--------------------|----------------------|------------------|-----------|-----------|---------------|----------------------|-----------------|-----------|----------|----------|----------|----------|
+| 1 | p256 + rsa3072 | 4350 | 1099 | 351 | 0 | 797 | 753 | 377 | 0 | 973 | 28607 | 12402 | 0 | 1492 | 12272 | 0 | 2441 |
+| 1 | p256 + p256 | 7268 | 2475 | 874 | 0 | 868 | 1025 | 909 | 0 | 1117 | 7972 | 1240 | 0 | 1759 | 1253 | 0 | 3720 |
+| 1 | Kyber512 + Dilithium2 | 3212 | 0 | 510 | 0 | 537 | 507 | 616 | 0 | 1042 | 8602 | 4902 | 0 | 444 | 2035 | 0 | 1221 |
+| 1 | Kyber512-90s + Dilithium2-AES | 4845 | 0 | 949 | 0 | 716 | 572 | 1445 | 0 | 1163 | 9162 | 5021 | 0 | 569 | 2385 | 0 | 1187 |
+| 1 | Kyber512 + Falcon-512 | 2787 | 0 | 429 | 0 | 625 | 392 | 421 | 0 | 920 | 44964 | 24330 | 0 | 475 | 19129 | 0 | 1030 |
+| 1 | Kyber512 + SPHINCS+-Haraka-128f-robust | 60660 | 0 | 28149 | 0 | 587 | 414 | 30145 | 0 | 1365 | 1427410 | 706773 | 0 | 438 | 718713 | 0 | 1486 |
+| 1 | Kyber512 + SPHINCS+-SHA256-128f-robust | 34985 | 0 | 15815 | 0 | 617 | 435 | 16605 | 0 | 1513 | 734379 | 356886 | 0 | 414 | 375412 | 0 | 1667 |
+| 1 | Kyber512 + SPHINCS+-SHAKE256-128f-robust | 65236 | 0 | 31688 | 0 | 564 | 393 | 31272 | 0 | 1319 | 1414574 | 703493 | 0 | 453 | 709069 | 0 | 1559 |
+| 1 | Kyber512 + Kyber512 | 8050 | 0 | 0 | 559 | 579 | 423 | 0 | 512 | 5977 | 3475 | 64 | 804 | 516 | 2 | 728 | 1361 |
+| 1 | Kyber512-90s + Kyber512-90s | 7373 | 0 | 0 | 551 | 632 | 523 | 0 | 521 | 5146 | 3352 | 51 | 832 | 551 | 3 | 771 | 1144 |
+| 3 | p384 + p384 | 12003 | 3946 | 1741 | 0 | 1867 | 1783 | 1655 | 0 | 1011 | 14666 | 2357 | 0 | 4132 | 2326 | 0 | 5851 |
+| 3 | Kyber768 + Dilithium3 | 4293 | 0 | 819 | 0 | 773 | 666 | 1001 | 0 | 1034 | 12256 | 5127 | 0 | 615 | 5388 | 0 | 1126 |
+| 3 | Kyber768-90s + Dilithium3-AES | 6937 | 0 | 2064 | 0 | 1025 | 941 | 1791 | 0 | 1116 | 13540 | 8236 | 0 | 853 | 3301 | 0 | 1150 |
+| 3 | Kyber768 + Falcon-1024 | 3813 | 0 | 785 | 0 | 778 | 589 | 758 | 0 | 903 | 86270 | 44990 | 0 | 614 | 39686 | 0 | 980 |
+| 3 | Kyber768 + Kyber768 | 7635 | 0 | 0 | 687 | 713 | 600 | 0 | 605 | 5030 | 3828 | 59 | 1010 | 651 | 3 | 910 | 1195 |
+| 3 | Kyber768-90s + Kyber768-90s | 8215 | 0 | 0 | 991 | 859 | 793 | 0 | 798 | 4774 | 4392 | 56 | 1403 | 827 | 3 | 1009 | 1094 |
+| 5 | p521 + p521 | 19232 | 6762 | 2565 | 0 | 3199 | 3207 | 2558 | 0 | 941 | 22493 | 3937 | 0 | 6724 | 3787 | 0 | 8045 |
+| 5 | Kyber1024 + Dilithium5 | 5442 | 0 | 1224 | 0 | 931 | 887 | 1356 | 0 | 1044 | 15409 | 11198 | 0 | 810 | 2279 | 0 | 1122 |
+| 5 | Kyber1024-90s + Dilithium5-AES | 9334 | 0 | 2846 | 0 | 1308 | 1294 | 2872 | 0 | 1014 | 14711 | 7741 | 0 | 1181 | 4691 | 0 | 1098 |
+| 5 | Kyber1024 + Falcon-1024 | 4163 | 0 | 735 | 0 | 900 | 809 | 785 | 0 | 934 | 86078 | 44414 | 0 | 804 | 39816 | 0 | 1044 |
+| 5 | Kyber1024 + Kyber1024 | 10402 | 0 | 0 | 939 | 844 | 961 | 0 | 882 | 6776 | 4576 | 56 | 1149 | 887 | 3 | 1205 | 1276 |
+| 5 | Kyber1024-90s + Kyber1024-90s | 11380 | 0 | 0 | 1283 | 1254 | 1302 | 0 | 1287 | 6254 | 5686 | 56 | 1474 | 1329 | 3 | 1593 | 1231 |
+
+```
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_pub_key_mode RAW --hash SHA_256 --asym RSAPSS_3072
+  spdm_perf_emu.exe  --dhe SECP_256_R1 --pqc_pub_key_mode RAW --hash SHA_256 --asym ECDSA_P256
+  spdm_perf_emu.exe  --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --slot_id 0xFF --pqc_sig DILITHIUM_2
+  spdm_perf_emu.exe  --pqc_kem KYBER_512_90S --pqc_pub_key_mode RAW --hash SHA_256 --slot_id 0xFF --pqc_sig DILITHIUM_2_AES
+  spdm_perf_emu.exe  --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --slot_id 0xFF --pqc_sig FALCON_512
+  spdm_perf_emu.exe  --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --slot_id 0xFF --pqc_sig SPHINCS_HARAKA_128F_ROBUST
+  spdm_perf_emu.exe  --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --slot_id 0xFF --pqc_sig SPHINCS_SHA256_128F_ROBUST
+  spdm_perf_emu.exe  --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --slot_id 0xFF --pqc_sig SPHINCS_SHAKE256_128F_ROBUST
+  spdm_perf_emu.exe  --pqc_kem KYBER_512 --pqc_pub_key_mode RAW --hash SHA_256 --slot_id 0xFF --pqc_kem_auth KYBER_512
+  spdm_perf_emu.exe  --pqc_kem KYBER_512_90S --pqc_pub_key_mode RAW --hash SHA_256 --slot_id 0xFF --pqc_kem_auth KYBER_512_90S
+  spdm_perf_emu.exe  --dhe SECP_384_R1 --pqc_pub_key_mode RAW --hash SHA_384 --asym ECDSA_P384
+  spdm_perf_emu.exe  --pqc_kem KYBER_768 --pqc_pub_key_mode RAW --hash SHA_384 --slot_id 0xFF --pqc_sig DILITHIUM_3
+  spdm_perf_emu.exe  --pqc_kem KYBER_768_90S --pqc_pub_key_mode RAW --hash SHA_384 --slot_id 0xFF --pqc_sig DILITHIUM_3_AES
+  spdm_perf_emu.exe  --pqc_kem KYBER_768 --pqc_pub_key_mode RAW --hash SHA_384 --slot_id 0xFF --pqc_sig FALCON_1024
+  spdm_perf_emu.exe  --pqc_kem KYBER_768 --pqc_pub_key_mode RAW --hash SHA_384 --slot_id 0xFF --pqc_kem_auth KYBER_768
+  spdm_perf_emu.exe  --pqc_kem KYBER_768_90S --pqc_pub_key_mode RAW --hash SHA_384 --slot_id 0xFF --pqc_kem_auth KYBER_768_90S
+  spdm_perf_emu.exe  --dhe SECP_521_R1 --pqc_pub_key_mode RAW --hash SHA_512 --asym ECDSA_P521
+  spdm_perf_emu.exe  --pqc_kem KYBER_1024 --pqc_pub_key_mode RAW --hash SHA_512 --slot_id 0xFF --pqc_sig DILITHIUM_5
+  spdm_perf_emu.exe  --pqc_kem KYBER_1024_90S --pqc_pub_key_mode RAW --hash SHA_512 --slot_id 0xFF --pqc_sig DILITHIUM_5_AES
+  spdm_perf_emu.exe  --pqc_kem KYBER_1024 --pqc_pub_key_mode RAW --hash SHA_512 --slot_id 0xFF --pqc_sig FALCON_1024
+  spdm_perf_emu.exe  --pqc_kem KYBER_1024 --pqc_pub_key_mode RAW --hash SHA_512 --slot_id 0xFF --pqc_kem_auth KYBER_1024
+  spdm_perf_emu.exe  --pqc_kem KYBER_1024_90S --pqc_pub_key_mode RAW --hash SHA_512 --slot_id 0xFF --pqc_kem_auth KYBER_1024_90S
+```
+
 ## Known limitation
 This package is only the sample code to show the concept.
 It does not have a full validation such as robustness functional test and fuzzing test. It does not meet the production quality yet.

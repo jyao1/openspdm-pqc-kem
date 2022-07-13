@@ -46,9 +46,11 @@ spdm_authentication (
   return_status         status;
 
   if ((m_exe_connection & EXE_CONNECTION_DIGEST) != 0) {
-    status = spdm_get_digest (context, slot_mask, total_digest_buffer);
-    if (RETURN_ERROR(status)) {
-      return status;
+    if (slot_id != 0xFF) {
+      status = spdm_get_digest (context, slot_mask, total_digest_buffer);
+      if (RETURN_ERROR(status)) {
+        return status;
+      }
     }
   }
 

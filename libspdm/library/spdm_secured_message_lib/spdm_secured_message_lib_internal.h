@@ -16,6 +16,8 @@ typedef struct {
   uint8                shared_secret[MAX_DHE_KEY_SIZE + MAX_PQC_KEM_SHARED_KEY_SIZE];
   uint8                handshake_secret[MAX_HASH_SIZE];
   uint8                master_secret[MAX_HASH_SIZE];
+  uint8                pqc_kem_auth_secret[MAX_PQC_KEM_SHARED_KEY_SIZE];
+  uint8                pqc_req_kem_auth_secret[MAX_PQC_KEM_SHARED_KEY_SIZE];
 } spdm_session_info_struct_master_secret_t;
 
 typedef struct {
@@ -57,6 +59,8 @@ typedef struct {
   uintn                                aead_block_size;
   uintn                                aead_tag_size;
   uintn                                pqc_shared_secret_size;
+  uintn                                pqc_kem_auth_shared_secret_size;
+  uintn                                pqc_req_kem_auth_shared_secret_size;
   boolean                              use_psk;
   spdm_session_state_t                   session_state;
   spdm_session_info_struct_master_secret_t      master_secret;

@@ -127,6 +127,8 @@ uint8    m_shared_key1[200];
 uint8    m_shared_key2[200];
 uint8    m_cipher_text2[22000];
 uint8    m_pub_key1[1400000];
+uint8    m_prv_key1[15000];
+char8    file_name[256];
 
 /**
   Validate PQC KEM Interfaces.
@@ -151,6 +153,8 @@ validate_pqc_crypt_kem (
   uintn    shared_key2_size;
 
   my_print ("\nPQC KEM Testing:\n");
+
+  calibration ();
 
   for (index = 0; index < ARRAY_SIZE(m_pqc_kem_nid); index++) {
     nid = m_pqc_kem_nid[index];
@@ -188,12 +192,36 @@ validate_pqc_crypt_kem (
       continue;
     }
     my_print ("GenKey1 ... ");
+    perf_start (PERF_ID_KEM_GEN);
     result = pqc_kem_generate_key (context1);
+    perf_stop (PERF_ID_KEM_GEN);
     if (!result) {
       my_print ("[FAIL]\n");
       pqc_kem_free (context1);
       continue;
     }
+
+    {
+      uintn public_key_size;
+      uintn private_key_size;
+
+      public_key_size = pqc_get_oqs_kem_public_key_size (nid);
+      ASSERT (public_key_size < sizeof(m_pub_key1));
+      private_key_size = pqc_get_oqs_kem_private_key_size (nid);
+      ASSERT (private_key_size < sizeof(m_prv_key1));
+      pqc_kem_get_public_key (context1, m_pub_key1, &public_key_size);
+      pqc_kem_get_private_key (context1, m_prv_key1, &private_key_size);
+
+      strcpy (file_name, "pqc_kem/");
+      strcat (file_name, pqc_get_oqs_kem_name(nid));
+      strcat (file_name, "_pk.bin");
+      write_output_file (file_name, m_pub_key1, public_key_size);
+      strcpy (file_name, "pqc_kem/");
+      strcat (file_name, pqc_get_oqs_kem_name(nid));
+      strcat (file_name, "_sk.bin");
+      write_output_file (file_name, m_prv_key1, private_key_size);
+    }
+
     my_print ("GetPub1 ... ");
     pub_key1_size = sizeof(m_pub_key1);
     result = pqc_kem_get_public_key (context1, m_pub_key1, &pub_key1_size);
@@ -217,7 +245,9 @@ validate_pqc_crypt_kem (
     my_print ("pqc_kem_encap2 ... ");
     shared_key2_size = sizeof(m_shared_key2);
     cipher_text2_size = sizeof(m_cipher_text2);
+    perf_start (PERF_ID_KEM_ENCAP);
     result = pqc_kem_encap (context2, m_pub_key1, pub_key1_size, m_shared_key2, &shared_key2_size, m_cipher_text2, &cipher_text2_size);
+    perf_stop (PERF_ID_KEM_ENCAP);
     if (!result) {
       my_print ("[FAIL]\n");
       pqc_kem_free (context1);
@@ -234,7 +264,9 @@ validate_pqc_crypt_kem (
     // Alice 2
     my_print ("pqc_kem_decap1 ... ");
     shared_key1_size = sizeof(m_shared_key1);
+    perf_start (PERF_ID_KEM_DECAP);
     result = pqc_kem_decap (context1, m_shared_key1, &shared_key1_size, m_cipher_text2, cipher_text2_size);
+    perf_stop (PERF_ID_KEM_DECAP);
     if (!result) {
       my_print ("[FAIL]\n");
       pqc_kem_free (context1);
@@ -264,6 +296,8 @@ validate_pqc_crypt_kem (
     pqc_kem_free (context2);
     my_print ("[PASS]\n");
   }
+
+  perf_dump ();
 
   return RETURN_SUCCESS;
 }

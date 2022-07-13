@@ -13,12 +13,21 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 typedef struct {
   spdm_message_header_t  header;
+  // param1 == slot_id
+  // param2 == HashType
+  uint8                nonce[32];
+  uint8                kem_cipher_text[MAX_PQC_KEM_CIPHER_TEXT_SIZE];
+} spdm_challenge_request_max_t;
+
+typedef struct {
+  spdm_message_header_t  header;
   uint8                cert_chain_hash[MAX_HASH_SIZE];
   uint8                nonce[SPDM_NONCE_SIZE];
   uint8                measurement_summary_hash[MAX_HASH_SIZE];
   uint16               opaque_length;
   uint8                opaque_data[MAX_SPDM_OPAQUE_DATA_SIZE];
   uint8                signature[MAX_ASYM_KEY_SIZE + PQC_SIG_SIGNATURE_LENGTH_SIZE + MAX_PQC_SIG_SIGNATURE_SIZE];
+  uint8                mac[MAX_HASH_SIZE];
 } spdm_challenge_auth_response_max_t;
 
 #pragma pack()
@@ -51,8 +60,9 @@ try_spdm_challenge (
 {
   return_status                             status;
   boolean                                   result;
-  spdm_challenge_request_t                    spdm_request;
+  spdm_challenge_request_max_t                spdm_request;
   spdm_challenge_auth_response_max_t          spdm_response;
+  uintn                                     spdm_request_size;
   uintn                                     spdm_response_size;
   uint8                                     *ptr;
   void                                      *cert_chain_hash;
@@ -66,6 +76,11 @@ try_spdm_challenge (
   uintn                                     signature_size;
   spdm_context_t                       *spdm_context;
   spdm_challenge_auth_response_attribute_t    auth_attribute;
+  boolean                                   use_pqc_kem_auth;
+  uintn                                     pqc_kem_auth_cipher_text_size;
+  uint8                                     pqc_kem_auth_shared_key[MAX_PQC_KEM_SHARED_KEY_SIZE];
+  uintn                                     pqc_kem_auth_shared_key_size;
+  uintn                                     hmac_size;
 
   spdm_context = context;
   if (!spdm_is_capabilities_flag_supported(spdm_context, TRUE, 0, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_CHAL_CAP)) {
@@ -79,7 +94,7 @@ try_spdm_challenge (
     return RETURN_INVALID_PARAMETER;
   }
   if ((slot_id == 0xFF) && (spdm_context->local_context.peer_cert_chain_provision_size == 0)) {
-    return RETURN_INVALID_PARAMETER;
+//    return RETURN_INVALID_PARAMETER;
   }
 
   spdm_context->error_state = SPDM_STATUS_ERROR_DEVICE_NO_CAPABILITIES;
@@ -96,7 +111,45 @@ try_spdm_challenge (
   DEBUG((DEBUG_INFO, "ClientNonce - "));
   internal_dump_data (spdm_request.nonce, SPDM_NONCE_SIZE);
   DEBUG((DEBUG_INFO, "\n"));
-  status = spdm_send_spdm_request (spdm_context, NULL, sizeof(spdm_request), &spdm_request);
+
+  spdm_request_size = sizeof(spdm_challenge_request_t);
+
+  pqc_kem_auth_cipher_text_size = spdm_get_pqc_kem_cipher_text_size (spdm_context->connection_info.algorithm.pqc_kem_auth_algo);
+  pqc_kem_auth_shared_key_size = spdm_get_pqc_kem_shared_key_size (spdm_context->connection_info.algorithm.pqc_kem_auth_algo);
+  use_pqc_kem_auth = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_kem_auth_algo);
+  if (use_pqc_kem_auth) {
+    // BUGBUG: This is a hack. We notice that the first KEM call is always time consuming.
+    // Maybe it is because the code is not loaded to cache, or the RNG delay.
+    // Need further investigation. It becomes normal since second KEM call.
+    result = spdm_pqc_responder_kem_auth_encap (
+                spdm_context->connection_info.algorithm.pqc_kem_auth_algo,
+                spdm_context->local_context.pqc_peer_kem_auth_public_key_provision,
+                spdm_context->local_context.pqc_peer_kem_auth_public_key_provision_size,
+                spdm_request.kem_cipher_text,
+                &pqc_kem_auth_cipher_text_size,
+                pqc_kem_auth_shared_key,
+                &pqc_kem_auth_shared_key_size);
+perf_start (PERF_ID_CHALLENG_KEM_AUTH_ENCAP);
+    result = spdm_pqc_responder_kem_auth_encap (
+                spdm_context->connection_info.algorithm.pqc_kem_auth_algo,
+                spdm_context->local_context.pqc_peer_kem_auth_public_key_provision,
+                spdm_context->local_context.pqc_peer_kem_auth_public_key_provision_size,
+                spdm_request.kem_cipher_text,
+                &pqc_kem_auth_cipher_text_size,
+                pqc_kem_auth_shared_key,
+                &pqc_kem_auth_shared_key_size);
+perf_stop (PERF_ID_CHALLENG_KEM_AUTH_ENCAP);
+    ASSERT(result);
+    DEBUG((DEBUG_INFO, "ClientKey PQC_KEM_AUTH (0x%x):\n", pqc_kem_auth_cipher_text_size));
+    internal_dump_hex (spdm_request.kem_cipher_text, pqc_kem_auth_cipher_text_size);
+
+    DEBUG((DEBUG_INFO, "shared_key PQC_KEM_AUTH (0x%x):\n", pqc_kem_auth_shared_key_size));
+    internal_dump_hex (pqc_kem_auth_shared_key, pqc_kem_auth_shared_key_size);
+
+    spdm_request_size += pqc_kem_auth_cipher_text_size;
+  }
+
+  status = spdm_send_spdm_request (spdm_context, NULL, spdm_request_size, &spdm_request);
   if (RETURN_ERROR(status)) {
     return RETURN_DEVICE_ERROR;
   }
@@ -104,7 +157,7 @@ try_spdm_challenge (
   //
   // Cache data
   //
-  status = spdm_append_message_c (spdm_context, &spdm_request, sizeof(spdm_request));
+  status = spdm_append_message_c (spdm_context, &spdm_request, spdm_request_size);
   if (RETURN_ERROR(status)) {
     return RETURN_SECURITY_VIOLATION;
   }
@@ -119,7 +172,7 @@ try_spdm_challenge (
     return RETURN_DEVICE_ERROR;
   }
   if (spdm_response.header.request_response_code == SPDM_ERROR) {
-    status = spdm_handle_error_response_main(spdm_context, NULL, &spdm_context->transcript.message_c, sizeof(spdm_request), &spdm_response_size, &spdm_response, SPDM_CHALLENGE, SPDM_CHALLENGE_AUTH, sizeof(spdm_challenge_auth_response_max_t));
+    status = spdm_handle_error_response_main(spdm_context, NULL, &spdm_context->transcript.message_c, spdm_request_size, &spdm_response_size, &spdm_response, SPDM_CHALLENGE, SPDM_CHALLENGE_AUTH, sizeof(spdm_challenge_auth_response_max_t));
     if (RETURN_ERROR(status)) {
       return status;
     }
@@ -155,8 +208,14 @@ try_spdm_challenge (
   }
   hash_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
   signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
-                   PQC_SIG_SIGNATURE_LENGTH_SIZE +
-                   spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
+                   PQC_SIG_SIGNATURE_LENGTH_SIZE;
+  if (!use_pqc_kem_auth || (spdm_context->local_context.pqc_public_key_mode != SPDM_DATA_PUBLIC_KEY_MODE_RAW)) {
+    signature_size += spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
+  }
+  hmac_size = 0;
+  if (use_pqc_kem_auth) {
+    hmac_size = hash_size;
+  }
   measurement_summary_hash_size = spdm_get_measurement_summary_hash_size (spdm_context, TRUE, measurement_hash_type);
 
   if (spdm_response_size <= sizeof(spdm_challenge_auth_response_t) +
@@ -174,10 +233,12 @@ try_spdm_challenge (
   DEBUG((DEBUG_INFO, "cert_chain_hash (0x%x) - ", hash_size));
   internal_dump_data (cert_chain_hash, hash_size);
   DEBUG((DEBUG_INFO, "\n"));
-  result = spdm_verify_certificate_chain_hash (spdm_context, cert_chain_hash, hash_size);
-  if (!result) {
-    spdm_context->error_state = SPDM_STATUS_ERROR_CERTIFICATE_FAILURE;
-    return RETURN_SECURITY_VIOLATION;
+  if (spdm_context->local_context.peer_cert_chain_provision_size != 0) {
+    result = spdm_verify_certificate_chain_hash (spdm_context, cert_chain_hash, hash_size);
+    if (!result) {
+      spdm_context->error_state = SPDM_STATUS_ERROR_CERTIFICATE_FAILURE;
+      return RETURN_SECURITY_VIOLATION;
+    }
   }
 
   nonce = ptr;
@@ -204,7 +265,8 @@ try_spdm_challenge (
                          measurement_summary_hash_size +
                          sizeof(uint16) +
                          opaque_length +
-                         signature_size) {
+                         signature_size +
+                         hmac_size) {
     return RETURN_DEVICE_ERROR;
   }
   spdm_response_size = sizeof(spdm_challenge_auth_response_t) +
@@ -213,8 +275,9 @@ try_spdm_challenge (
                      measurement_summary_hash_size +
                      sizeof(uint16) +
                      opaque_length +
-                     signature_size;
-  status = spdm_append_message_c (spdm_context, &spdm_response, spdm_response_size - signature_size);
+                     signature_size +
+                     hmac_size;
+  status = spdm_append_message_c (spdm_context, &spdm_response, spdm_response_size - signature_size - hmac_size);
   if (RETURN_ERROR(status)) {
     return RETURN_SECURITY_VIOLATION;
   }
@@ -227,12 +290,25 @@ try_spdm_challenge (
   signature = ptr;
   DEBUG((DEBUG_INFO, "signature (0x%x):\n", signature_size));
   internal_dump_hex (signature, signature_size);
+  ptr += signature_size;
 perf_start (PERF_ID_CHALLENG_SIG_VER);
   result = spdm_verify_challenge_auth_signature (spdm_context, TRUE, signature, signature_size);
 perf_stop (PERF_ID_CHALLENG_SIG_VER);
   if (!result) {
     spdm_context->error_state = SPDM_STATUS_ERROR_CERTIFICATE_FAILURE;
     return RETURN_SECURITY_VIOLATION;
+  }
+
+  if (use_pqc_kem_auth) {
+    status = spdm_append_message_c (spdm_context, signature, signature_size);
+    ASSERT (status == RETURN_SUCCESS);
+
+    DEBUG((DEBUG_INFO, "challenge verify_data (0x%x):\n", hmac_size));
+    internal_dump_hex (ptr, hmac_size);
+
+    result = spdm_verify_challenge_auth_hmac (spdm_context, FALSE, ptr,
+                pqc_kem_auth_shared_key, pqc_kem_auth_shared_key_size);
+    ASSERT (result);
   }
 
   spdm_context->error_state = SPDM_STATUS_SUCCESS;

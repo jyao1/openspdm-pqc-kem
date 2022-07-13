@@ -349,6 +349,26 @@ spdm_set_data (
       copy_mem (&spdm_context->local_context.algorithm.pqc_kem_algo, data, sizeof(pqc_algo_t));
     }
     break;
+  case SPDM_DATA_PQC_KEM_AUTH_ALGO:
+    if (data_size != sizeof(pqc_algo_t)) {
+      return RETURN_INVALID_PARAMETER;
+    }
+    if (parameter->location == SPDM_DATA_LOCATION_CONNECTION) {
+      copy_mem (&spdm_context->connection_info.algorithm.pqc_kem_auth_algo, data, sizeof(pqc_algo_t));
+    } else {
+      copy_mem (&spdm_context->local_context.algorithm.pqc_kem_auth_algo, data, sizeof(pqc_algo_t));
+    }
+    break;
+  case SPDM_DATA_PQC_REQ_KEM_AUTH_ALGO:
+    if (data_size != sizeof(pqc_algo_t)) {
+      return RETURN_INVALID_PARAMETER;
+    }
+    if (parameter->location == SPDM_DATA_LOCATION_CONNECTION) {
+      copy_mem (&spdm_context->connection_info.algorithm.pqc_req_kem_auth_algo, data, sizeof(pqc_algo_t));
+    } else {
+      copy_mem (&spdm_context->local_context.algorithm.pqc_req_kem_auth_algo, data, sizeof(pqc_algo_t));
+    }
+    break;
   case SPDM_DATA_PQC_PUBLIC_KEY_MODE:
     if (data_size != sizeof(spdm_data_public_key_mode_t)) {
       return RETURN_INVALID_PARAMETER;
@@ -366,6 +386,18 @@ spdm_set_data (
     }
     spdm_context->local_context.pqc_local_public_key_provision_size[slot_id] = data_size;
     spdm_context->local_context.pqc_local_public_key_provision[slot_id] = data;
+    break;
+  case SPDM_DATA_PQC_PEER_KEM_AUTH_PUBLIC_KEY:
+    spdm_context->local_context.pqc_peer_kem_auth_public_key_provision_size = data_size;
+    spdm_context->local_context.pqc_peer_kem_auth_public_key_provision = data;
+    break;
+  case SPDM_DATA_PQC_LOCAL_KEM_AUTH_PUBLIC_KEY:
+    slot_id = parameter->additional_data[0];
+    if (slot_id >= spdm_context->local_context.slot_count) {
+      return RETURN_INVALID_PARAMETER;
+    }
+    spdm_context->local_context.pqc_local_kem_auth_public_key_provision_size[slot_id] = data_size;
+    spdm_context->local_context.pqc_local_kem_auth_public_key_provision[slot_id] = data;
     break;
   case SPDM_DATA_PQC_LOCAL_USED_PUBLIC_KEY:
     if (data_size > MAX_PQC_SIG_PUBLIC_KEY_SIZE) {
@@ -568,6 +600,20 @@ spdm_get_data (
     }
     target_data_size = sizeof(pqc_algo_t);
     target_data = &spdm_context->connection_info.algorithm.pqc_req_sig_algo;
+    break;
+  case SPDM_DATA_PQC_KEM_AUTH_ALGO:
+    if (parameter->location != SPDM_DATA_LOCATION_CONNECTION) {
+      return RETURN_INVALID_PARAMETER;
+    }
+    target_data_size = sizeof(pqc_algo_t);
+    target_data = &spdm_context->connection_info.algorithm.pqc_kem_auth_algo;
+    break;
+  case SPDM_DATA_PQC_REQ_KEM_AUTH_ALGO:
+    if (parameter->location != SPDM_DATA_LOCATION_CONNECTION) {
+      return RETURN_INVALID_PARAMETER;
+    }
+    target_data_size = sizeof(pqc_algo_t);
+    target_data = &spdm_context->connection_info.algorithm.pqc_req_kem_auth_algo;
     break;
 
   default:
@@ -1058,9 +1104,9 @@ spdm_init_context (
   spdm_context->version = spdm_context_struct_VERSION;
   spdm_context->transcript.message_a.max_buffer_size    = MAX_SPDM_MESSAGE_SMALL_BUFFER_SIZE;
   spdm_context->transcript.message_b.max_buffer_size    = MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE;
-  spdm_context->transcript.message_c.max_buffer_size    = MAX_SPDM_MESSAGE_SMALL_BUFFER_SIZE;
+  spdm_context->transcript.message_c.max_buffer_size    = MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE;
   spdm_context->transcript.message_mut_b.max_buffer_size = MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE;
-  spdm_context->transcript.message_mut_c.max_buffer_size = MAX_SPDM_MESSAGE_SMALL_BUFFER_SIZE;
+  spdm_context->transcript.message_mut_c.max_buffer_size = MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE;
   spdm_context->transcript.message_m.max_buffer_size    = MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE;
   spdm_context->retry_times                           = MAX_SPDM_REQUEST_RETRY_TIMES;
   spdm_context->response_state                        = SPDM_RESPONSE_STATE_NORMAL;

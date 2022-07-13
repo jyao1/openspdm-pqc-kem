@@ -45,6 +45,8 @@ uint16             m_spdm_key_schedule;
 pqc_algo_t         m_spdm_pqc_sig_algo;
 pqc_algo_t         m_spdm_pqc_req_sig_algo;
 pqc_algo_t         m_spdm_pqc_kem_algo;
+pqc_algo_t         m_spdm_pqc_kem_auth_algo;
+pqc_algo_t         m_spdm_pqc_req_kem_auth_algo;
 
 uint8              m_spdm_fragment_encapsulated_message[MAX_SPDM_MESSAGE_LARGE_BUFFER_SIZE];
 uintn              m_spdm_fragment_encapsulated_message_size;
@@ -497,6 +499,16 @@ dump_spdm_negotiate_algorithms (
           dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
           printf ("(");
           break;
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEM_AUTH_ALGO:
+          printf ("), pqc_kem_auth=");
+          dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
+          printf ("(");
+          break;
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_REQ_KEM_AUTH_ALGO:
+          printf ("), pqc_req_kem_auth=");
+          dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
+          printf ("(");
+          break;
         }
         fixed_alg_size = (struct_table->alg_count >> 4) & 0xF;
         ext_alg_count = struct_table->alg_count & 0xF;
@@ -615,6 +627,16 @@ dump_spdm_algorithms (
           dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
           printf ("(");
           break;
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEM_AUTH_ALGO:
+          printf ("), pqc_kem_auth=");
+          dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
+          printf ("(");
+          break;
+        case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_REQ_KEM_AUTH_ALGO:
+          printf ("), pqc_req_kem_auth=");
+          dump_hex_str (struct_table + 1, sizeof(pqc_algo_t));
+          printf ("(");
+          break;
         }
         fixed_alg_size = (struct_table->alg_count >> 4) & 0xF;
         ext_alg_count = struct_table->alg_count & 0xF;
@@ -663,6 +685,12 @@ dump_spdm_algorithms (
         break;
       case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEY_ESTABLISHMENT_ALGO:
         copy_mem (m_spdm_pqc_kem_algo, struct_table + 1, sizeof(pqc_algo_t));
+        break;
+      case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEM_AUTH_ALGO:
+        copy_mem (m_spdm_pqc_kem_auth_algo, struct_table + 1, sizeof(pqc_algo_t));
+        break;
+      case SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_REQ_KEM_AUTH_ALGO:
+        copy_mem (m_spdm_pqc_req_kem_auth_algo, struct_table + 1, sizeof(pqc_algo_t));
         break;
       }
       fixed_alg_size = (struct_table->alg_count >> 4) & 0xF;

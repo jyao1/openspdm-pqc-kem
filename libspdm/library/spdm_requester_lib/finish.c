@@ -53,6 +53,7 @@ try_spdm_send_receive_finish (
   boolean                                   result;
   uint8                                     th2_hash_data[64];
   spdm_session_state_t                        session_state;
+  boolean                                     use_pqc_req_kem_auth;
 
   if (!spdm_is_capabilities_flag_supported(spdm_context, TRUE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_KEY_EX_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_KEY_EX_CAP)) {
     return RETURN_UNSUPPORTED;
@@ -88,9 +89,13 @@ try_spdm_send_receive_finish (
   if (session_info->mut_auth_requested) {
     spdm_request.header.param1 = SPDM_FINISH_REQUEST_ATTRIBUTES_SIGNATURE_INCLUDED;
     spdm_request.header.param2 = req_slot_id_param;
+
+    use_pqc_req_kem_auth = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_req_kem_auth_algo);
     signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg) +
-                     PQC_SIG_SIGNATURE_LENGTH_SIZE +
-                     spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
+                     PQC_SIG_SIGNATURE_LENGTH_SIZE;
+    if (!use_pqc_req_kem_auth || (spdm_context->local_context.pqc_public_key_mode != SPDM_DATA_PUBLIC_KEY_MODE_RAW)) {
+      signature_size += spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
+    }
   } else {
     spdm_request.header.param1 = 0;
     spdm_request.header.param2 = 0;

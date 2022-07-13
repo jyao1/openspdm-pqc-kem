@@ -111,11 +111,23 @@ char *m_perf_str[] = {
   "CERT_VERIFICATION",
   "CHALLENG_SIG_GEN",
   "CHALLENG_SIG_VER",
+  "CHALLENG_KEM_AUTH_ENCAP",
+  "CHALLENG_KEM_AUTH_DECAP",
   "KEY_EX_KEM_GEN",
   "KEY_EX_KEM_ENCAP",
   "KEY_EX_KEM_DECAP",
   "KEY_EX_SIG_GEN",
   "KEY_EX_SIG_VER",
+  "KEY_EX_KEM_AUTH_ENCAP",
+  "KEY_EX_KEM_AUTH_DECAP",
+  "CHALLENG_RSP_SIG_GEN",
+  "CHALLENG_RSP_SIG_VER",
+  "CHALLENG_RSP_KEM_AUTH_ENCAP",
+  "CHALLENG_RSP_KEM_AUTH_DECAP",
+  "FINISH_RSP_SIG_GEN",
+  "FINISH_RSP_SIG_VER",
+  "KEY_EX_RSP_KEM_AUTH_ENCAP",
+  "KEY_EX_RSP_KEM_AUTH_DECAP",
   "MAX",
 };
 
@@ -126,12 +138,25 @@ get_security_level (
   uint32 asym_algo,
   pqc_algo_t pqc_sig_algo)
 {
+  uintn  nid;
   if (dhe_algo == SPDM_ALGORITHMS_DHE_NAMED_GROUP_SECP_521_R1) {
     return 5;
   } else if (dhe_algo == SPDM_ALGORITHMS_DHE_NAMED_GROUP_SECP_384_R1) {
     return 3;
   } else if (dhe_algo == SPDM_ALGORITHMS_DHE_NAMED_GROUP_SECP_256_R1) {
     return 1;
+  } else {
+    nid = spdm_get_pqc_kem_nid (pqc_kem_algo);
+    if (nid == PQC_CRYPTO_KEM_NID_KYBER_1024 ||
+        nid == PQC_CRYPTO_KEM_NID_KYBER_1024_90S) {
+      return 5;
+    } else if (nid == PQC_CRYPTO_KEM_NID_KYBER_768 ||
+               nid == PQC_CRYPTO_KEM_NID_KYBER_768_90S) {
+      return 3;
+    } else if (nid == PQC_CRYPTO_KEM_NID_KYBER_512 ||
+               nid == PQC_CRYPTO_KEM_NID_KYBER_512_90S) {
+      return 1;
+    }
   }
   return 0;
 }
@@ -212,52 +237,83 @@ char *pqc_sig_algo_to_string (pqc_algo_t pqc_algo)
 void
 perf_dump ()
 {
+  boolean need_flag;
   calibration ();
 #if 1
-  // | Security Level | Configuration (KEM + SIG)
-  printf ("| %d ", get_security_level (m_use_dhe_algo, m_use_pqc_kem_algo, m_use_asym_algo, m_use_pqc_sig_algo));
-  printf ("| %s", dhe_algo_to_string (m_use_dhe_algo));
-  if (!spdm_pqc_algo_is_zero (m_use_pqc_kem_algo)) {
-    printf ("_%s", pqc_kem_algo_to_string (m_use_pqc_kem_algo));
+  // | Security Level | Configuration (KEM + SIG + KEM_AUTH)
+  printf ("| %d | ", get_security_level (m_use_dhe_algo, m_use_pqc_kem_algo, m_use_asym_algo, m_use_pqc_sig_algo));
+  need_flag = FALSE;
+  if (m_use_dhe_algo != 0) {
+    printf ("%s", dhe_algo_to_string (m_use_dhe_algo));
+    need_flag = TRUE;
   }
-  printf (" + %s", asym_algo_to_string (m_use_asym_algo));
+  if (!spdm_pqc_algo_is_zero (m_use_pqc_kem_algo)) {
+    if (need_flag) {
+      printf ("_");
+    }
+    printf ("%s", pqc_kem_algo_to_string (m_use_pqc_kem_algo));
+  }
+  printf (" + ");
+  need_flag = FALSE;
+  if (m_use_asym_algo != 0) {
+    printf ("%s", asym_algo_to_string (m_use_asym_algo));
+    need_flag = TRUE;
+  }
   if (!spdm_pqc_algo_is_zero (m_use_pqc_sig_algo)) {
-    printf ("_%s", pqc_sig_algo_to_string (m_use_pqc_sig_algo));
+    if (need_flag) {
+      printf ("_");
+    }
+    printf ("%s", pqc_sig_algo_to_string (m_use_pqc_sig_algo));
+    need_flag = TRUE;
+  }
+  if (!spdm_pqc_algo_is_zero (m_use_pqc_kem_auth_algo)) {
+    if (need_flag) {
+      printf ("_");
+    }
+    printf ("%s", pqc_kem_algo_to_string (m_use_pqc_kem_auth_algo));
   }
 
-  // | Requester TOTAL | CERT_VERIFY | CHAL_VERIFY | KEY_EX_KEM_GEN | KEY_EX_KEM_DECAP | KEY_EX_KEM_VERIFY
+  // | Requester TOTAL | CERT_VERIFY | CHAL_VERIFY | CHAL_KEM_AUTH_ENCAP | KEY_EX_KEM_GEN | KEY_EX_KEM_DECAP | KEY_EX_KEM_VERIFY | KEY_EX_KEM_AUTH_ENCAP
 #ifdef _MSC_VER
-  printf (" | %I64d | %I64d | %I64d | %I64d | %I64d | %I64d | %I64d ",
+  printf (" | %I64d | %I64d | %I64d | %I64d | %I64d | %I64d | %I64d | %I64d | %I64d ",
 #else
-  printf (" | %lld | %lld | %lld | %lld | %lld | %lld | %lld ",
+  printf (" | %lld | %lld | %lld | %lld | %lld | %lld | %lld | %lld | %lld ",
 #endif
     m_perf_struct[PERF_ID_REQUESTER].sum / m_freq_mh,
     m_perf_struct[PERF_ID_CERT_VERIFICATION].sum / m_freq_mh,
     m_perf_struct[PERF_ID_CHALLENG_SIG_VER].sum / m_freq_mh,
+    m_perf_struct[PERF_ID_CHALLENG_KEM_AUTH_ENCAP].sum / m_freq_mh,
     m_perf_struct[PERF_ID_KEY_EX_KEM_GEN].sum / m_freq_mh,
     m_perf_struct[PERF_ID_KEY_EX_KEM_DECAP].sum / m_freq_mh,
     m_perf_struct[PERF_ID_KEY_EX_SIG_VER].sum / m_freq_mh,
+    m_perf_struct[PERF_ID_KEY_EX_KEM_AUTH_ENCAP].sum / m_freq_mh,
     m_perf_struct[PERF_ID_REQUESTER].sum / m_freq_mh -
       m_perf_struct[PERF_ID_CERT_VERIFICATION].sum / m_freq_mh -
       m_perf_struct[PERF_ID_CHALLENG_SIG_VER].sum / m_freq_mh -
+      m_perf_struct[PERF_ID_CHALLENG_KEM_AUTH_ENCAP].sum / m_freq_mh -
       m_perf_struct[PERF_ID_KEY_EX_KEM_GEN].sum / m_freq_mh -
       m_perf_struct[PERF_ID_KEY_EX_KEM_DECAP].sum / m_freq_mh -
-      m_perf_struct[PERF_ID_KEY_EX_SIG_VER].sum / m_freq_mh
+      m_perf_struct[PERF_ID_KEY_EX_SIG_VER].sum / m_freq_mh - 
+      m_perf_struct[PERF_ID_KEY_EX_KEM_AUTH_ENCAP].sum / m_freq_mh
     );
-  // Responder TOTAL | CHAL_SIGN | KEY_EX_KEM_ENCAP | KEY_EX_KEM_SIGN |
+  // Responder TOTAL | CHAL_SIGN | CHAL_KEM_AUTH_DECAP | KEY_EX_KEM_ENCAP | KEY_EX_KEM_SIGN | KEY_EX_KEM_AUTH_DECAP |
 #ifdef _MSC_VER
-  printf ("| %I64d | %I64d | %I64d | %I64d | %I64d |\n",
+  printf ("| %I64d | %I64d | %I64d | %I64d | %I64d | %I64d | %I64d |\n",
 #else
-  printf ("| %lld | %lld | %lld | %lld | %lld |\n",
+  printf ("| %lld | %lld | %lld | %lld | %lld | %lld | %lld |\n",
 #endif
     m_perf_struct[PERF_ID_RESPONDER].sum / m_freq_mh,
     m_perf_struct[PERF_ID_CHALLENG_SIG_GEN].sum / m_freq_mh,
+    m_perf_struct[PERF_ID_CHALLENG_KEM_AUTH_DECAP].sum / m_freq_mh,
     m_perf_struct[PERF_ID_KEY_EX_KEM_ENCAP].sum / m_freq_mh,
     m_perf_struct[PERF_ID_KEY_EX_SIG_GEN].sum / m_freq_mh,
+    m_perf_struct[PERF_ID_KEY_EX_KEM_AUTH_DECAP].sum / m_freq_mh,
     m_perf_struct[PERF_ID_RESPONDER].sum / m_freq_mh -
       m_perf_struct[PERF_ID_CHALLENG_SIG_GEN].sum / m_freq_mh -
+      m_perf_struct[PERF_ID_CHALLENG_KEM_AUTH_DECAP].sum / m_freq_mh -
       m_perf_struct[PERF_ID_KEY_EX_KEM_ENCAP].sum / m_freq_mh -
-      m_perf_struct[PERF_ID_KEY_EX_SIG_GEN].sum / m_freq_mh
+      m_perf_struct[PERF_ID_KEY_EX_SIG_GEN].sum / m_freq_mh -
+      m_perf_struct[PERF_ID_KEY_EX_KEM_AUTH_DECAP].sum / m_freq_mh
     );
 #else
   perf_id_t perf_id;

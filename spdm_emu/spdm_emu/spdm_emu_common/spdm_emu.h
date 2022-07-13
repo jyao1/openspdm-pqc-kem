@@ -54,6 +54,8 @@ extern uint16  m_use_req_asym_algo;
 extern pqc_algo_t m_use_pqc_sig_algo;
 extern pqc_algo_t m_use_pqc_kem_algo;
 extern pqc_algo_t m_use_pqc_req_sig_algo;
+extern pqc_algo_t m_use_pqc_kem_auth_algo;
+extern pqc_algo_t m_use_pqc_req_kem_auth_algo;
 
 extern uint8   m_support_measurement_spec;
 extern uint32  m_support_measurement_hash_algo;
@@ -67,6 +69,8 @@ extern uint16  m_support_key_schedule_algo;
 extern pqc_algo_t m_support_pqc_sig_algo;
 extern pqc_algo_t m_support_pqc_req_sig_algo;
 extern pqc_algo_t m_support_pqc_kem_algo;
+extern pqc_algo_t m_support_pqc_kem_auth_algo;
+extern pqc_algo_t m_support_pqc_req_kem_auth_algo;
 
 extern spdm_data_public_key_mode_t m_pqc_pub_key_mode;
 

@@ -804,6 +804,39 @@ spdm_pqc_kem_get_public_key (
   return pqc_kem_get_public_key (context, public_key, public_key_size);
 }
 
+boolean
+spdm_pqc_kem_set_public_key (
+  IN      pqc_algo_t     pqc_kem_algo,
+  IN      void         *context,
+  IN      uint8        *public_key,
+  IN      uintn        public_key_size
+  )
+{
+  return pqc_kem_set_public_key (context, public_key, public_key_size);
+}
+
+boolean
+spdm_pqc_kem_get_private_key (
+  IN      pqc_algo_t     pqc_kem_algo,
+  IN      void         *context,
+  OUT     uint8        *private_key,
+  IN OUT  uintn        *private_key_size
+  )
+{
+  return pqc_kem_get_private_key (context, private_key, private_key_size);
+}
+
+boolean
+spdm_pqc_kem_set_private_key (
+  IN      pqc_algo_t     pqc_kem_algo,
+  IN      void         *context,
+  IN      uint8        *private_key,
+  IN      uintn        private_key_size
+  )
+{
+  return pqc_kem_set_private_key (context, private_key, private_key_size);
+}
+
 /**
   Generate shared key and return the encap data for the shared key with peer public key,
   based upon negotiated PQC KEM algorithm.

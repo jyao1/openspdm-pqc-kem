@@ -269,3 +269,41 @@ spdm_secured_message_pqc_kem_decap (
   secured_message_context->pqc_shared_secret_size = shared_key_size;
   return TRUE;
 }
+
+boolean
+spdm_secured_message_pqc_kem_auth_set_shared_key (
+  IN      pqc_algo_t     pqc_kem_auth_algo,
+  IN      uint8          *shared_key,
+  IN      uintn          shared_key_size,
+  IN OUT  void           *spdm_secured_message_context
+  )
+{
+  spdm_secured_message_context_t           *secured_message_context;
+
+  secured_message_context = spdm_secured_message_context;
+
+  ASSERT (shared_key_size == spdm_get_pqc_kem_shared_key_size(pqc_kem_auth_algo));
+
+  copy_mem (secured_message_context->master_secret.pqc_kem_auth_secret, shared_key, shared_key_size);
+  secured_message_context->pqc_kem_auth_shared_secret_size = shared_key_size;
+  return TRUE;
+}
+
+boolean
+spdm_secured_message_pqc_req_kem_auth_set_shared_key (
+  IN      pqc_algo_t     pqc_req_kem_auth_algo,
+  IN      uint8          *shared_key,
+  IN      uintn          shared_key_size,
+  IN OUT  void           *spdm_secured_message_context
+  )
+{
+  spdm_secured_message_context_t           *secured_message_context;
+
+  secured_message_context = spdm_secured_message_context;
+
+  ASSERT (shared_key_size == spdm_get_pqc_kem_shared_key_size(pqc_req_kem_auth_algo));
+
+  copy_mem (secured_message_context->master_secret.pqc_req_kem_auth_secret, shared_key, shared_key_size);
+  secured_message_context->pqc_req_kem_auth_shared_secret_size = shared_key_size;
+  return TRUE;
+}

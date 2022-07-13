@@ -646,6 +646,52 @@ read_requester_pqc_public_key (
 }
 
 boolean
+read_pqc_kem_auth_public_key (
+  IN  pqc_algo_t  pqc_kem_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  char8                *algo_name;
+  char8                file_name[256];
+  boolean              result;
+
+  algo_name = spdm_get_pqc_kem_name (pqc_kem_algo);
+  ASSERT (algo_name != NULL);
+
+  strcpy (file_name, "pqc_kem/");
+  strcat (file_name, algo_name);
+  strcat (file_name, "_pk.bin");
+
+  result = read_input_file (file_name, data, size);
+  if (!result) {
+    ASSERT (FALSE);
+  }
+
+  return result;
+}
+
+boolean
+read_responder_pqc_kem_auth_public_key (
+  IN  pqc_algo_t  pqc_kem_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  return read_pqc_kem_auth_public_key (pqc_kem_algo, data, size);
+}
+
+boolean
+read_requester_pqc_kem_auth_public_key (
+  IN  pqc_algo_t  pqc_kem_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  return read_pqc_kem_auth_public_key (pqc_kem_algo, data, size);
+}
+
+boolean
 read_hybrid_root_public_certificate (
   IN  uint32  bash_hash_algo,
   IN  uint32  base_asym_algo,

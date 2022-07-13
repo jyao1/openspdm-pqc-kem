@@ -47,6 +47,7 @@ spdm_get_response_finish (
   uint8                    th2_hash_data[64];
   return_status            status;
   spdm_session_state_t       session_state;
+  boolean                    use_pqc_req_kem_auth;
 
   spdm_context = context;
   spdm_request = request;
@@ -99,9 +100,12 @@ spdm_get_response_finish (
 
   hmac_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
   if (session_info->mut_auth_requested) {
+    use_pqc_req_kem_auth = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_req_kem_auth_algo);
     signature_size = spdm_get_req_asym_signature_size (spdm_context->connection_info.algorithm.req_base_asym_alg) +
-                     PQC_SIG_SIGNATURE_LENGTH_SIZE +
-                     spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
+                     PQC_SIG_SIGNATURE_LENGTH_SIZE;
+    if (!use_pqc_req_kem_auth || (spdm_context->local_context.pqc_public_key_mode != SPDM_DATA_PUBLIC_KEY_MODE_RAW)) {
+      signature_size += spdm_get_pqc_req_sig_signature_size (spdm_context->connection_info.algorithm.pqc_req_sig_algo);
+    }
   } else {
     signature_size = 0;
   }
@@ -113,8 +117,8 @@ spdm_get_response_finish (
 
   req_slot_id = spdm_request->header.param2;
   if ((req_slot_id != 0xFF) && (req_slot_id >= spdm_context->local_context.slot_count)) {
-    spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
-    return RETURN_SUCCESS;
+//    spdm_generate_error_response (spdm_context, SPDM_ERROR_CODE_INVALID_REQUEST, 0, response_size, response);
+//    return RETURN_SUCCESS;
   }
   if (req_slot_id == 0xFF) {
     req_slot_id = spdm_context->encap_context.req_slot_id;

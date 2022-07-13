@@ -80,6 +80,7 @@ spdm_bin_concat (
   }
   if (*out_bin_size < final_size) {
     *out_bin_size = final_size;
+    ASSERT(FALSE);
     return RETURN_BUFFER_TOO_SMALL;
   }
   
@@ -190,6 +191,85 @@ spdm_generate_finished_key (
   return RETURN_SUCCESS;
 }
 
+#define BIN_STR_KEM_LABEL          "kem derived"
+#define BIN_STR_KEM_AUTH_LABEL     "kem auth derived"
+#define BIN_STR_REQ_KEM_AUTH_LABEL "req kem auth derived"
+
+return_status
+spdm_generate_pqc_kem_auth_keys (
+  IN void                         *spdm_secured_message_context
+  )
+{
+  spdm_secured_message_context_t   *secured_message_context;
+  return_status   status;
+  boolean         ret_val;
+  uintn           hash_size;
+  uint8           bin_str_kem[128];
+  uintn           bin_str_kem_size;
+  uint8           bin_str_kem_auth[128];
+  uintn           bin_str_kem_auth_size;
+  uint8           bin_str_req_kem_auth[128];
+  uintn           bin_str_req_kem_auth_size;
+  uint8           kem_secret1[MAX_HASH_SIZE];
+  uint8           kem_secret[MAX_HASH_SIZE];
+  uint8           kem_auth_secret1[MAX_HASH_SIZE];
+  uint8           kem_auth_secret[MAX_HASH_SIZE];
+  uint8           kem_final_secret1[MAX_HASH_SIZE];
+  uint8           kem_final_secret[MAX_HASH_SIZE];
+  
+  secured_message_context = spdm_secured_message_context;
+  hash_size = secured_message_context->hash_size;
+
+  ret_val = spdm_hmac_all (secured_message_context->bash_hash_algo, m_zero_filled_buffer, hash_size,
+              &secured_message_context->master_secret.shared_secret[secured_message_context->dhe_key_size],
+              secured_message_context->pqc_shared_secret_size,
+              kem_secret1);
+  ASSERT (ret_val);
+  bin_str_kem_size = sizeof(bin_str_kem);
+  status = spdm_bin_concat (BIN_STR_KEM_LABEL, sizeof(BIN_STR_KEM_LABEL) - 1, NULL, (uint16)hash_size, hash_size, bin_str_kem, &bin_str_kem_size);
+  ASSERT_RETURN_ERROR (status);
+  ret_val = spdm_hkdf_expand (secured_message_context->bash_hash_algo, kem_secret1, hash_size,
+              bin_str_kem, bin_str_kem_size, kem_secret, hash_size);
+  ASSERT (ret_val);
+
+  ret_val = spdm_hmac_all (secured_message_context->bash_hash_algo, kem_secret, hash_size,
+              secured_message_context->master_secret.pqc_kem_auth_secret,
+              secured_message_context->pqc_kem_auth_shared_secret_size,
+              kem_auth_secret1);
+  ASSERT (ret_val);
+  bin_str_kem_auth_size = sizeof(bin_str_kem_auth);
+  status = spdm_bin_concat (BIN_STR_KEM_AUTH_LABEL, sizeof(BIN_STR_KEM_AUTH_LABEL) - 1, NULL, (uint16)hash_size, hash_size, bin_str_kem_auth, &bin_str_kem_auth_size);
+  ASSERT_RETURN_ERROR (status);
+  ret_val = spdm_hkdf_expand (secured_message_context->bash_hash_algo, kem_auth_secret1, hash_size,
+              bin_str_kem_auth, bin_str_kem_auth_size, kem_auth_secret, hash_size);
+  ASSERT (ret_val);
+
+  if (secured_message_context->pqc_req_kem_auth_shared_secret_size != 0) {
+    ret_val = spdm_hmac_all (secured_message_context->bash_hash_algo, kem_auth_secret, hash_size,
+                secured_message_context->master_secret.pqc_req_kem_auth_secret,
+                secured_message_context->pqc_req_kem_auth_shared_secret_size,
+                kem_final_secret1);
+  } else {
+    ret_val = spdm_hmac_all (secured_message_context->bash_hash_algo, kem_auth_secret, hash_size,
+                m_zero_filled_buffer,
+                hash_size,
+                kem_final_secret1);
+  }
+  ASSERT (ret_val);
+  bin_str_req_kem_auth_size = sizeof(bin_str_req_kem_auth);
+  status = spdm_bin_concat (BIN_STR_REQ_KEM_AUTH_LABEL, sizeof(BIN_STR_REQ_KEM_AUTH_LABEL) - 1, NULL, (uint16)hash_size, hash_size, bin_str_req_kem_auth, &bin_str_req_kem_auth_size);
+  ASSERT_RETURN_ERROR (status);
+  ret_val = spdm_hkdf_expand (secured_message_context->bash_hash_algo, kem_final_secret1, hash_size,
+              bin_str_req_kem_auth, bin_str_req_kem_auth_size, kem_final_secret, hash_size);
+  ASSERT (ret_val);
+
+  // replace original pqc shared_secret
+  copy_mem (&secured_message_context->master_secret.shared_secret[secured_message_context->dhe_key_size], kem_final_secret, hash_size);
+  secured_message_context->pqc_shared_secret_size = hash_size;
+
+  return RETURN_SUCCESS;
+}
+
 /**
   This function generates SPDM HandshakeKey for a session.
 
@@ -228,6 +308,9 @@ spdm_generate_session_handshake_key (
   if (secured_message_context->use_psk) {
     // No handshake_secret generation for PSK.
   } else {
+    if (secured_message_context->pqc_kem_auth_shared_secret_size != 0) {
+      spdm_generate_pqc_kem_auth_keys (spdm_secured_message_context);
+    }
     DEBUG((DEBUG_INFO, "[DHE Secret]: "));
     internal_dump_hex_str (secured_message_context->master_secret.shared_secret, secured_message_context->dhe_key_size);
     DEBUG((DEBUG_INFO, "\n"));

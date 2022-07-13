@@ -13,11 +13,12 @@ SET(src_test_pqc_crypt
     hybrid_sig_verify.c
     kem_verify.c
     os_support.c
+    perf.c
 )
 
 SET(test_pqc_crypt_LIBRARY
     memlib 
-    debuglib 
+    debuglib_null
     ${CRYPTO}lib
     rnglib
     cryptlib_${CRYPTO}

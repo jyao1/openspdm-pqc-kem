@@ -458,6 +458,52 @@ read_requester_pqc_private_key (
   return read_pqc_private_key (pqc_sig_algo, data, size);
 }
 
+boolean
+read_pqc_kem_auth_private_key (
+  IN  pqc_algo_t  pqc_kem_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  char8                *algo_name;
+  char8                file_name[256];
+  boolean              result;
+
+  algo_name = spdm_get_pqc_kem_name (pqc_kem_algo);
+  ASSERT (algo_name != NULL);
+
+  strcpy (file_name, "pqc_kem/");
+  strcat (file_name, algo_name);
+  strcat (file_name, "_sk.bin");
+
+  result = read_input_file (file_name, data, size);
+  if (!result) {
+    ASSERT (FALSE);
+  }
+
+  return result;
+}
+
+boolean
+read_responder_pqc_kem_auth_private_key (
+  IN  pqc_algo_t  pqc_kem_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  return read_pqc_kem_auth_private_key (pqc_kem_algo, data, size);
+}
+
+boolean
+read_requester_pqc_kem_auth_private_key (
+  IN  pqc_algo_t  pqc_kem_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  )
+{
+  return read_pqc_kem_auth_private_key (pqc_kem_algo, data, size);
+}
+
 /**
   Sign an SPDM message data.
 
@@ -796,3 +842,126 @@ spdm_hybrid_responder_data_sign (
   return spdm_hybrid_data_sign (base_asym_algo, bash_hash_algo, pqc_sig_algo, message, message_size, signature, sig_size, FALSE);
 }
 
+boolean
+spdm_pqc_responder_kem_auth_encap (
+  IN      pqc_algo_t  pqc_kem_auth_algo,
+  IN      uint8       *peer_public_key,
+  IN      uintn       peer_public_key_size,
+  OUT     uint8        *cipher_text,
+  IN OUT  uintn        *cipher_text_size,
+  OUT     uint8        *shared_key,
+  IN OUT  uintn        *shared_key_size
+  )
+{
+  void *context;
+  boolean ret;
+
+  ASSERT(peer_public_key != NULL);
+  ASSERT(peer_public_key_size != 0);
+
+  context = spdm_pqc_kem_new (pqc_kem_auth_algo);
+  ASSERT (context != NULL);
+  ret = spdm_pqc_kem_encap (pqc_kem_auth_algo, context, peer_public_key, peer_public_key_size,
+                            shared_key, shared_key_size, cipher_text, cipher_text_size);
+  ASSERT (ret);
+  spdm_pqc_kem_free (pqc_kem_auth_algo, context);
+
+  return ret;
+}
+
+boolean
+spdm_pqc_responder_kem_auth_decap (
+  IN      pqc_algo_t  pqc_kem_auth_algo,
+  IN      uint8        *cipher_text,
+  IN      uintn        cipher_text_size,
+  OUT     uint8        *shared_key,
+  IN OUT  uintn        *shared_key_size
+  )
+{
+  void *context;
+  boolean ret;
+  uint8  *my_public_key;
+  uintn  my_public_key_size;
+  uint8  *my_private_key;
+  uintn  my_private_key_size;
+
+  ret = read_responder_pqc_kem_auth_public_key (pqc_kem_auth_algo, &my_public_key, &my_public_key_size);
+  ASSERT (ret);
+  ret = read_responder_pqc_kem_auth_private_key (pqc_kem_auth_algo, &my_private_key, &my_private_key_size);
+  ASSERT (ret);
+
+  context = spdm_pqc_kem_new (pqc_kem_auth_algo);
+  ASSERT (context != NULL);
+  ret = spdm_pqc_kem_set_public_key (pqc_kem_auth_algo, context, my_public_key, my_public_key_size);
+  ASSERT (ret);
+  ret = spdm_pqc_kem_set_private_key (pqc_kem_auth_algo, context, my_private_key, my_private_key_size);
+  ASSERT (ret);
+  ret = spdm_pqc_kem_decap (pqc_kem_auth_algo, context,
+                            shared_key, shared_key_size, cipher_text, cipher_text_size);
+  ASSERT (ret);
+  spdm_pqc_kem_free (pqc_kem_auth_algo, context);
+
+  return ret;
+}
+
+boolean
+spdm_pqc_requester_kem_auth_encap (
+  IN      pqc_algo_t  pqc_req_kem_auth_algo,
+  IN      uint8       *peer_public_key,
+  IN      uintn       peer_public_key_size,
+  OUT     uint8        *cipher_text,
+  IN OUT  uintn        *cipher_text_size,
+  OUT     uint8        *shared_key,
+  IN OUT  uintn        *shared_key_size
+  )
+{
+  void *context;
+  boolean ret;
+
+  ASSERT(peer_public_key != NULL);
+  ASSERT(peer_public_key_size != 0);
+
+  context = spdm_pqc_kem_new (pqc_req_kem_auth_algo);
+  ASSERT (context != NULL);
+  ret = spdm_pqc_kem_encap (pqc_req_kem_auth_algo, context, peer_public_key, peer_public_key_size,
+                            shared_key, shared_key_size, cipher_text, cipher_text_size);
+  ASSERT (ret);
+  spdm_pqc_kem_free (pqc_req_kem_auth_algo, context);
+
+  return ret;
+}
+
+boolean
+spdm_pqc_requester_kem_auth_decap (
+  IN      pqc_algo_t  pqc_req_kem_auth_algo,
+  IN      uint8        *cipher_text,
+  IN      uintn        cipher_text_size,
+  OUT     uint8        *shared_key,
+  IN OUT  uintn        *shared_key_size
+  )
+{
+  void *context;
+  boolean ret;
+  uint8  *my_public_key;
+  uintn  my_public_key_size;
+  uint8  *my_private_key;
+  uintn  my_private_key_size;
+
+  ret = read_requester_pqc_kem_auth_public_key (pqc_req_kem_auth_algo, &my_public_key, &my_public_key_size);
+  ASSERT (ret);
+  ret = read_requester_pqc_kem_auth_private_key (pqc_req_kem_auth_algo, &my_private_key, &my_private_key_size);
+  ASSERT (ret);
+
+  context = spdm_pqc_kem_new (pqc_req_kem_auth_algo);
+  ASSERT (context != NULL);
+  ret = spdm_pqc_kem_set_public_key (pqc_req_kem_auth_algo, context, my_public_key, my_public_key_size);
+  ASSERT (ret);
+  ret = spdm_pqc_kem_set_private_key (pqc_req_kem_auth_algo, context, my_private_key, my_private_key_size);
+  ASSERT (ret);
+  ret = spdm_pqc_kem_decap (pqc_req_kem_auth_algo, context,
+                            shared_key, shared_key_size, cipher_text, cipher_text_size);
+  ASSERT (ret);
+  spdm_pqc_kem_free (pqc_req_kem_auth_algo, context);
+
+  return ret;
+}

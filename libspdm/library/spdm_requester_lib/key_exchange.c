@@ -16,7 +16,7 @@ typedef struct {
   uint16               req_session_id;
   uint16               reserved;
   uint8                random_data[SPDM_RANDOM_DATA_SIZE];
-  uint8                exchange_data[MAX_DHE_KEY_SIZE + MAX_PQC_KEM_PUBLIC_KEY_SIZE];
+  uint8                exchange_data[MAX_DHE_KEY_SIZE + MAX_PQC_KEM_PUBLIC_KEY_SIZE + MAX_PQC_KEM_CIPHER_TEXT_SIZE];
   uint16               opaque_length;
   uint8                opaque_data[MAX_SPDM_OPAQUE_DATA_SIZE];
 } spdm_key_exchange_request_mine_t;
@@ -27,7 +27,7 @@ typedef struct {
   uint8                mut_auth_requested;
   uint8                req_slot_id_param;
   uint8                random_data[SPDM_RANDOM_DATA_SIZE];
-  uint8                exchange_data[MAX_DHE_KEY_SIZE + MAX_PQC_KEM_CIPHER_TEXT_SIZE];
+  uint8                exchange_data[MAX_DHE_KEY_SIZE + MAX_PQC_KEM_CIPHER_TEXT_SIZE + MAX_PQC_KEM_CIPHER_TEXT_SIZE];
   uint8                measurement_summary_hash[MAX_HASH_SIZE];
   uint16               opaque_length;
   uint8                opaque_data[MAX_SPDM_OPAQUE_DATA_SIZE];
@@ -88,6 +88,14 @@ try_spdm_send_receive_key_exchange (
   uintn                                     pqc_kem_cipher_text_size;
   boolean                                   result2;
   boolean                                   need_pqc_kem;
+  boolean                                   use_pqc_kem_auth;
+  uintn                                     pqc_kem_auth_cipher_text_size;
+  uint8                                     pqc_kem_auth_shared_key[MAX_PQC_KEM_SHARED_KEY_SIZE];
+  uintn                                     pqc_kem_auth_shared_key_size;
+  boolean                                   use_pqc_req_kem_auth;
+  uintn                                     pqc_req_kem_auth_cipher_text_size;
+  uint8                                     pqc_req_kem_auth_shared_key[MAX_PQC_KEM_SHARED_KEY_SIZE];
+  uintn                                     pqc_req_kem_auth_shared_key_size;
 
   if (!spdm_is_capabilities_flag_supported(spdm_context, TRUE, SPDM_GET_CAPABILITIES_REQUEST_FLAGS_KEY_EX_CAP, SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_KEY_EX_CAP)) {
     return RETURN_UNSUPPORTED;
@@ -100,7 +108,7 @@ try_spdm_send_receive_key_exchange (
     return RETURN_INVALID_PARAMETER;
   }
   if ((slot_id == 0xFF) && (spdm_context->local_context.peer_cert_chain_provision_size == 0)) {
-    return RETURN_INVALID_PARAMETER;
+//    return RETURN_INVALID_PARAMETER;
   }
 
   spdm_context->error_state = SPDM_STATUS_ERROR_DEVICE_NO_CAPABILITIES;
@@ -121,11 +129,15 @@ try_spdm_send_receive_key_exchange (
 perf_start (PERF_ID_KEY_EX_KEM_GEN);
   ptr = spdm_request.exchange_data;
   dhe_key_size = spdm_get_dhe_pub_key_size (spdm_context->connection_info.algorithm.dhe_named_group);
-  dhe_context = spdm_secured_message_dhe_new (spdm_context->connection_info.algorithm.dhe_named_group);
-  spdm_secured_message_dhe_generate_key (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context, ptr, &dhe_key_size);
-  DEBUG((DEBUG_INFO, "ClientKey (0x%x):\n", dhe_key_size));
-  internal_dump_hex (ptr, dhe_key_size);
-  ptr += dhe_key_size;
+  if (dhe_key_size != 0) {
+    dhe_context = spdm_secured_message_dhe_new (spdm_context->connection_info.algorithm.dhe_named_group);
+    spdm_secured_message_dhe_generate_key (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context, ptr, &dhe_key_size);
+    DEBUG((DEBUG_INFO, "ClientKey (0x%x):\n", dhe_key_size));
+    internal_dump_hex (ptr, dhe_key_size);
+    ptr += dhe_key_size;
+  } else {
+    dhe_context = NULL;
+  }
 
   pqc_kem_public_key_size = spdm_get_pqc_kem_public_key_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
   need_pqc_kem = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_kem_algo);
@@ -138,6 +150,26 @@ perf_start (PERF_ID_KEY_EX_KEM_GEN);
     ptr += pqc_kem_public_key_size;
   }
 perf_stop (PERF_ID_KEY_EX_KEM_GEN);
+
+perf_start (PERF_ID_KEY_EX_KEM_AUTH_ENCAP);
+  pqc_kem_auth_cipher_text_size = spdm_get_pqc_kem_cipher_text_size (spdm_context->connection_info.algorithm.pqc_kem_auth_algo);
+  pqc_kem_auth_shared_key_size = spdm_get_pqc_kem_shared_key_size (spdm_context->connection_info.algorithm.pqc_kem_auth_algo);
+  use_pqc_kem_auth = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_kem_auth_algo);
+  if (use_pqc_kem_auth) {
+    result = spdm_pqc_responder_kem_auth_encap (
+                spdm_context->connection_info.algorithm.pqc_kem_auth_algo,
+                spdm_context->local_context.pqc_peer_kem_auth_public_key_provision,
+                spdm_context->local_context.pqc_peer_kem_auth_public_key_provision_size,
+                ptr,
+                &pqc_kem_auth_cipher_text_size,
+                pqc_kem_auth_shared_key,
+                &pqc_kem_auth_shared_key_size);
+    ASSERT(result);
+    DEBUG((DEBUG_INFO, "ClientKey PQC_KEM_AUTH (0x%x):\n", pqc_kem_auth_cipher_text_size));
+    internal_dump_hex (ptr, pqc_kem_auth_cipher_text_size);
+    ptr += pqc_kem_auth_cipher_text_size;
+  }
+perf_stop (PERF_ID_KEY_EX_KEM_AUTH_ENCAP);
 
   opaque_key_exchange_req_size = spdm_get_opaque_data_supported_version_data_size (spdm_context);
   *(uint16 *)ptr = (uint16)opaque_key_exchange_req_size;
@@ -228,8 +260,11 @@ perf_stop (PERF_ID_KEY_EX_KEM_GEN);
   }
 
   signature_size = spdm_get_asym_signature_size (spdm_context->connection_info.algorithm.base_asym_algo) +
-                   PQC_SIG_SIGNATURE_LENGTH_SIZE +
-                   spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
+                   PQC_SIG_SIGNATURE_LENGTH_SIZE;
+  if (!use_pqc_kem_auth || (spdm_context->local_context.pqc_public_key_mode != SPDM_DATA_PUBLIC_KEY_MODE_RAW)) {
+    signature_size += spdm_get_pqc_sig_signature_size (spdm_context->connection_info.algorithm.pqc_sig_algo);
+  }
+
   measurement_summary_hash_size = spdm_get_measurement_summary_hash_size (spdm_context, TRUE, measurement_hash_type);
   hmac_size = spdm_get_hash_size (spdm_context->connection_info.algorithm.bash_hash_algo);
   pqc_kem_cipher_text_size = spdm_get_pqc_kem_cipher_text_size (spdm_context->connection_info.algorithm.pqc_kem_algo);
@@ -238,9 +273,13 @@ perf_stop (PERF_ID_KEY_EX_KEM_GEN);
     hmac_size = 0;
   }
 
+  pqc_req_kem_auth_cipher_text_size = spdm_get_pqc_kem_cipher_text_size (spdm_context->connection_info.algorithm.pqc_req_kem_auth_algo);
+  pqc_req_kem_auth_shared_key_size = spdm_get_pqc_kem_shared_key_size (spdm_context->connection_info.algorithm.pqc_req_kem_auth_algo);
+  use_pqc_req_kem_auth = !spdm_pqc_algo_is_zero (spdm_context->connection_info.algorithm.pqc_req_kem_auth_algo);
   if (spdm_response_size <  sizeof(spdm_key_exchange_response_t) +
                           dhe_key_size +
                           pqc_kem_cipher_text_size +
+                          pqc_req_kem_auth_cipher_text_size +
                           measurement_summary_hash_size +
                           sizeof(uint16) +
                           signature_size +
@@ -266,6 +305,11 @@ perf_stop (PERF_ID_KEY_EX_KEM_GEN);
 
   ptr += pqc_kem_cipher_text_size;
 
+  DEBUG((DEBUG_INFO, "ServerKey PQC_REQ_KEM_AUTH (0x%x):\n", pqc_req_kem_auth_cipher_text_size));
+  internal_dump_hex (ptr, pqc_req_kem_auth_cipher_text_size);
+
+  ptr += pqc_req_kem_auth_cipher_text_size;
+
   measurement_summary_hash = ptr;
   DEBUG((DEBUG_INFO, "measurement_summary_hash (0x%x) - ", measurement_summary_hash_size));
   internal_dump_data (measurement_summary_hash, measurement_summary_hash_size);
@@ -281,6 +325,7 @@ perf_stop (PERF_ID_KEY_EX_KEM_GEN);
   if (spdm_response_size < sizeof(spdm_key_exchange_response_t) +
                          dhe_key_size +
                          pqc_kem_cipher_text_size +
+                         pqc_req_kem_auth_cipher_text_size +
                          measurement_summary_hash_size +
                          sizeof(uint16) +
                          opaque_length +
@@ -304,6 +349,7 @@ perf_stop (PERF_ID_KEY_EX_KEM_GEN);
   spdm_response_size = sizeof(spdm_key_exchange_response_t) +
                      dhe_key_size +
                      pqc_kem_cipher_text_size +
+                     pqc_req_kem_auth_cipher_text_size +
                      measurement_summary_hash_size +
                      sizeof(uint16) +
                      opaque_length +
@@ -345,8 +391,10 @@ perf_stop (PERF_ID_KEY_EX_SIG_VER);
   // Fill data to calc Secret for HMAC verification
   //
 perf_start (PERF_ID_KEY_EX_KEM_DECAP);
-  result = spdm_secured_message_dhe_compute_key (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context, spdm_response.exchange_data, dhe_key_size, session_info->secured_message_context);
-  spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+  if (dhe_key_size != 0) {
+    result = spdm_secured_message_dhe_compute_key (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context, spdm_response.exchange_data, dhe_key_size, session_info->secured_message_context);
+    spdm_secured_message_dhe_free (spdm_context->connection_info.algorithm.dhe_named_group, dhe_context);
+  }
   if (need_pqc_kem) {
     result2 = spdm_secured_message_pqc_kem_decap (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context, &spdm_response.exchange_data[dhe_key_size], pqc_kem_cipher_text_size, session_info->secured_message_context);
     spdm_secured_message_pqc_kem_free (spdm_context->connection_info.algorithm.pqc_kem_algo, pqc_kem_context);
@@ -358,6 +406,33 @@ perf_start (PERF_ID_KEY_EX_KEM_DECAP);
     return RETURN_SECURITY_VIOLATION;
   }
 perf_stop (PERF_ID_KEY_EX_KEM_DECAP);
+
+  if (use_pqc_kem_auth) {
+    spdm_secured_message_pqc_kem_auth_set_shared_key (
+      spdm_context->connection_info.algorithm.pqc_kem_auth_algo,
+      pqc_kem_auth_shared_key,
+      pqc_kem_auth_shared_key_size,
+      session_info->secured_message_context
+      );
+  }
+
+perf_start (PERF_ID_KEY_EX_REQ_KEM_AUTH_DECAP);
+  if (use_pqc_req_kem_auth) {
+    result = spdm_pqc_requester_kem_auth_decap (
+               spdm_context->connection_info.algorithm.pqc_req_kem_auth_algo,
+               &spdm_response.exchange_data[dhe_key_size + pqc_kem_cipher_text_size],
+               pqc_req_kem_auth_cipher_text_size,
+               pqc_req_kem_auth_shared_key,
+               &pqc_req_kem_auth_shared_key_size);
+    ASSERT(result);
+    spdm_secured_message_pqc_req_kem_auth_set_shared_key (
+      spdm_context->connection_info.algorithm.pqc_req_kem_auth_algo,
+      pqc_req_kem_auth_shared_key,
+      pqc_req_kem_auth_shared_key_size,
+      session_info->secured_message_context
+      );
+  }
+perf_stop (PERF_ID_KEY_EX_REQ_KEM_AUTH_DECAP);
 
   DEBUG ((DEBUG_INFO, "spdm_generate_session_handshake_key[%x]\n", *session_id));
   status = spdm_calculate_th1_hash (spdm_context, session_info, TRUE, th1_hash_data);

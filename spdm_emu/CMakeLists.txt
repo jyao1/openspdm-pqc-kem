@@ -434,6 +434,8 @@ endif()
     ADD_SUBDIRECTORY(${LIBSPDM_DIR}/os_stub/rnglib out/rnglib.out)
     ADD_SUBDIRECTORY(${LIBSPDM_DIR}/os_stub/malloclib out/malloclib.out)
     ADD_SUBDIRECTORY(${LIBSPDM_DIR}/os_stub/spdm_device_secret_lib out/spdm_device_secret_lib.out)
+    ADD_SUBDIRECTORY(${LIBSPDM_DIR}/unit_test/cmockalib out/cmockalib.out)
+    ADD_SUBDIRECTORY(${LIBSPDM_DIR}/unit_test/test_pqc_crypt out/test_pqc_crypt.out)
 
     ADD_SUBDIRECTORY(spdm_emu/spdm_requester_emu)
     ADD_SUBDIRECTORY(spdm_emu/spdm_responder_emu)

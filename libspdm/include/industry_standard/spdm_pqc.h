@@ -49,6 +49,35 @@ typedef uint8  pqc_algo_t[12];
 #define SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_REQ_DIGITAL_SIGNATURE_ALGO  12
 #define SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEY_ESTABLISHMENT_ALGO      13
 
+///
+/// The KEM Auth:
+///   For KEY_EXCHANGE, 3 KEMs are involved: PqcKem, PqcKemAuth, PqcReqKemAuth (mut-auth)
+///     KEY_EXCHANGE: ExchangeData ||= PqcKemAuth ExchangeData (CipherText)
+///     KEY_ExCHANGE_RSP: ExchangeData ||= PqcReqKemAuth ExchangeData (CipherText), Signature = NULL
+///     FINISH: Signature = NULL
+///
+///   Key Schedule:
+///     dSSe = HKDF.Extract(0, PqcKem.SharedSecret)
+///     SSe = HKDF.Expand(dSSe, bin_str_kem)
+///     dSSr = HKDF.Extract(SSe, PqcKemAuth.SharedSecret)
+///     SSr = HKDF.Expand(dSSr, bin_str_kem_auth)
+///     dSSi = HKDF.Extract(SSr, PqcReqKemAuth.SharedSecret) -- mut_auth, or dSSi = All 0 -- no_mut_auth
+///     SS = HKDF.Expand(dSSi, bin_str_req_kem_auth)
+///     Pqc Secret = SS
+///     where:
+///       bin_str_kem string = "kem_e derive"
+///       bin_str_kem_auth string = "kem_auth derive"
+///       bin_str_req_kem_auth string = "req_kem_auth derive"
+///
+/// Reference:
+///   Strongly Secure Authenticated Key Exchange from Factoring Codes and Lattices - https://eprint.iacr.org/2012/211
+///   Post-Quantum TLS Without Handshake Signatures - https://eprint.iacr.org/2020/534
+///   https://datatracker.ietf.org/doc/draft-celi-wiggers-tls-authkem
+///
+
+#define SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_KEM_AUTH_ALGO               14
+#define SPDM_NEGOTIATE_ALGORITHMS_STRUCT_TABLE_ALG_TYPE_PQC_REQ_KEM_AUTH_ALGO           15
+
 typedef struct {
   uint8                alg_type;
   uint8                alg_count;

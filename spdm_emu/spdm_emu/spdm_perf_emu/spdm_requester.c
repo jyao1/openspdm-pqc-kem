@@ -198,6 +198,8 @@ spdm_client_init (
   spdm_set_data (spdm_context, SPDM_DATA_PQC_SIG_ALGO, &parameter, &m_support_pqc_sig_algo, sizeof(pqc_algo_t));
   spdm_set_data (spdm_context, SPDM_DATA_PQC_KEM_ALGO, &parameter, &m_support_pqc_kem_algo, sizeof(pqc_algo_t));
   spdm_set_data (spdm_context, SPDM_DATA_PQC_REQ_SIG_ALGO, &parameter, &m_support_pqc_req_sig_algo, sizeof(pqc_algo_t));
+  spdm_set_data (spdm_context, SPDM_DATA_PQC_KEM_AUTH_ALGO, &parameter, &m_support_pqc_kem_auth_algo, sizeof(pqc_algo_t));
+  spdm_set_data (spdm_context, SPDM_DATA_PQC_REQ_KEM_AUTH_ALGO, &parameter, &m_support_pqc_req_kem_auth_algo, sizeof(pqc_algo_t));
 
   if (m_load_state_file_name == NULL) {
     // Skip if state is loaded
@@ -241,6 +243,10 @@ perf_stop (PERF_ID_REQUESTER);
   spdm_get_data (spdm_context, SPDM_DATA_PQC_KEM_ALGO, &parameter, &m_use_pqc_kem_algo, &data_size);
   data_size = sizeof(pqc_algo_t);
   spdm_get_data (spdm_context, SPDM_DATA_PQC_REQ_SIG_ALGO, &parameter, &m_use_pqc_req_sig_algo, &data_size);
+  data_size = sizeof(pqc_algo_t);
+  spdm_get_data (spdm_context, SPDM_DATA_PQC_KEM_AUTH_ALGO, &parameter, &m_use_pqc_kem_auth_algo, &data_size);
+  data_size = sizeof(pqc_algo_t);
+  spdm_get_data (spdm_context, SPDM_DATA_PQC_REQ_KEM_AUTH_ALGO, &parameter, &m_use_pqc_req_kem_auth_algo, &data_size);
 
   if ((m_use_slot_id == 0xFF) || ((m_use_requester_capability_flags & SPDM_GET_CAPABILITIES_REQUEST_FLAGS_PUB_KEY_ID_CAP) != 0)) {
     if (m_pqc_pub_key_mode == SPDM_DATA_PUBLIC_KEY_MODE_RAW) {
@@ -278,6 +284,16 @@ perf_stop (PERF_ID_REQUESTER);
     }
   }
 
+  if (!spdm_pqc_algo_is_zero (m_use_pqc_kem_auth_algo)) {
+    res = read_responder_pqc_kem_auth_public_key (m_use_pqc_kem_auth_algo, &data, &data_size);
+    if (res) {
+      parameter.additional_data[0] = 0;
+      parameter.location = SPDM_DATA_LOCATION_LOCAL;
+      spdm_set_data (spdm_context, SPDM_DATA_PQC_PEER_KEM_AUTH_PUBLIC_KEY, &parameter, data, data_size);
+      // do not free it
+    }
+  }
+
   if (m_use_mut_auth != 0 || m_use_basic_mut_auth != 0) {
     if (m_pqc_pub_key_mode == SPDM_DATA_PUBLIC_KEY_MODE_RAW) {
       res = read_requester_public_certificate_chain (m_use_hash_algo, m_use_req_asym_algo, &data, &data_size, NULL, NULL);
@@ -303,6 +319,15 @@ perf_stop (PERF_ID_REQUESTER);
         parameter.additional_data[0] = 0;
         parameter.location = SPDM_DATA_LOCATION_LOCAL;
         spdm_set_data (spdm_context, SPDM_DATA_PQC_LOCAL_PUBLIC_KEY, &parameter, data, data_size);
+        // do not free it
+      }
+    }
+    if (!spdm_pqc_algo_is_zero (m_use_pqc_req_kem_auth_algo)) {
+      res = read_requester_pqc_kem_auth_public_key (m_use_pqc_req_kem_auth_algo, &data, &data_size);
+      if (res) {
+        parameter.additional_data[0] = 0;
+        parameter.location = SPDM_DATA_LOCATION_LOCAL;
+        spdm_set_data (spdm_context, SPDM_DATA_PQC_LOCAL_KEM_AUTH_PUBLIC_KEY, &parameter, data, data_size);
         // do not free it
       }
     }
