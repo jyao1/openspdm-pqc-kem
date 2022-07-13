@@ -106,6 +106,20 @@ read_requester_pqc_public_key (
   OUT uintn   *size
   );
 
+boolean
+read_responder_pqc_kem_auth_public_key (
+  IN  pqc_algo_t  pqc_kem_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  );
+
+boolean
+read_requester_pqc_kem_auth_public_key (
+  IN  pqc_algo_t  pqc_kem_algo,
+  OUT void    **data,
+  OUT uintn   *size
+  );
+
 //
 // PQC hybrid cert
 //

@@ -710,4 +710,20 @@ spdm_secured_message_pqc_kem_decap (
   IN OUT  void         *spdm_secured_message_context
   );
 
+boolean
+spdm_secured_message_pqc_kem_auth_set_shared_key (
+  IN      pqc_algo_t     pqc_kem_auth_algo,
+  IN      uint8          *shared_key,
+  IN      uintn          shared_key_size,
+  IN OUT  void           *spdm_secured_message_context
+  );
+
+boolean
+spdm_secured_message_pqc_req_kem_auth_set_shared_key (
+  IN      pqc_algo_t     pqc_req_kem_auth_algo,
+  IN      uint8          *shared_key,
+  IN      uintn          shared_key_size,
+  IN OUT  void           *spdm_secured_message_context
+  );
+
 #endif

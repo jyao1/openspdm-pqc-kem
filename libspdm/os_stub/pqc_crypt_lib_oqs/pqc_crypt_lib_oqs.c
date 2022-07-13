@@ -802,6 +802,85 @@ pqc_kem_get_public_key (
   return TRUE;
 }
 
+boolean
+pqc_kem_set_public_key (
+  IN      void         *context,
+  IN      uint8        *public_key,
+  IN      uintn        public_key_size
+  )
+{
+  pqc_oqs_kem_t         *oqs_kem;
+
+  oqs_kem = context;
+
+  if (public_key_size != oqs_kem->oqs_kem->length_public_key) {
+    return FALSE;
+  }
+
+  if (oqs_kem->public_key != NULL) {
+    zero_mem (oqs_kem->public_key, oqs_kem->oqs_kem->length_public_key);
+    free (oqs_kem->public_key);
+  }
+  oqs_kem->public_key = malloc (oqs_kem->oqs_kem->length_public_key);
+  if (oqs_kem->public_key == NULL) {
+    return FALSE;
+  }
+  copy_mem (oqs_kem->public_key, public_key, oqs_kem->oqs_kem->length_public_key);
+
+  return TRUE;
+}
+
+boolean
+pqc_kem_get_private_key (
+  IN      void         *context,
+  OUT     uint8        *private_key,
+  IN OUT  uintn        *private_key_size
+  )
+{
+  pqc_oqs_kem_t         *oqs_kem;
+
+  oqs_kem = context;
+
+  if (*private_key_size < oqs_kem->oqs_kem->length_secret_key) {
+    *private_key_size = oqs_kem->oqs_kem->length_secret_key;
+    return FALSE;
+  }
+  *private_key_size = oqs_kem->oqs_kem->length_secret_key;
+
+  copy_mem (private_key, oqs_kem->secret_key, oqs_kem->oqs_kem->length_secret_key);
+
+  return TRUE;
+}
+
+boolean
+pqc_kem_set_private_key (
+  IN      void         *context,
+  IN      uint8        *private_key,
+  IN      uintn        private_key_size
+  )
+{
+  pqc_oqs_kem_t         *oqs_kem;
+
+  oqs_kem = context;
+
+  if (private_key_size != oqs_kem->oqs_kem->length_secret_key) {
+    return FALSE;
+  }
+
+  if (oqs_kem->secret_key != NULL) {
+    zero_mem (oqs_kem->secret_key, oqs_kem->oqs_kem->length_secret_key);
+    free (oqs_kem->secret_key);
+  }
+  oqs_kem->secret_key = malloc (oqs_kem->oqs_kem->length_secret_key);
+  if (oqs_kem->secret_key == NULL) {
+    return FALSE;
+  }
+
+  copy_mem (oqs_kem->secret_key, private_key, oqs_kem->oqs_kem->length_secret_key);
+
+  return TRUE;
+}
+
 /**
   Generate shared key and return the encap data for the shared key with peer public key.
 

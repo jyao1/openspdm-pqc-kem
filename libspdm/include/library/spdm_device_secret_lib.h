@@ -333,4 +333,44 @@ spdm_hybrid_requester_data_sign (
   IN OUT  uintn        *sig_size
   );
 
+boolean
+spdm_pqc_responder_kem_auth_encap (
+  IN      pqc_algo_t  pqc_kem_auth_algo,
+  IN      uint8       *peer_public_key,
+  IN      uintn       peer_public_key_size,
+  OUT     uint8        *cipher_text,
+  IN OUT  uintn        *cipher_text_size,
+  OUT     uint8        *shared_key,
+  IN OUT  uintn        *shared_key_size
+  );
+
+boolean
+spdm_pqc_responder_kem_auth_decap (
+  IN      pqc_algo_t  pqc_kem_auth_algo,
+  IN      uint8        *cipher_text,
+  IN      uintn        cipher_text_size,
+  OUT     uint8        *shared_key,
+  IN OUT  uintn        *shared_key_size
+  );
+
+boolean
+spdm_pqc_requester_kem_auth_encap (
+  IN      pqc_algo_t  pqc_req_kem_auth_algo,
+  IN      uint8       *peer_public_key,
+  IN      uintn       peer_public_key_size,
+  OUT     uint8        *cipher_text,
+  IN OUT  uintn        *cipher_text_size,
+  OUT     uint8        *shared_key,
+  IN OUT  uintn        *shared_key_size
+  );
+
+boolean
+spdm_pqc_requester_kem_auth_decap (
+  IN      pqc_algo_t  pqc_req_kem_auth_algo,
+  IN      uint8        *cipher_text,
+  IN      uintn        cipher_text_size,
+  OUT     uint8        *shared_key,
+  IN OUT  uintn        *shared_key_size
+  );
+
 #endif

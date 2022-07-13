@@ -52,6 +52,8 @@ print_usage (
   printf ("   [--pqc_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}\n");
   printf ("   [--pqc_req_sig DILITHIUM_{2,3,5}{_AES*}|FALCON_{512,1024}|SPHINCS_{HARAKA,SHA256,SHAKE256}_{128,192,256}{F,S}_{ROBUST,SIMPLE}\n");
   printf ("   [--pqc_kem BIKE1_{L1,L3}_{CPA,FO}|CLASSIC_MCELIECE_{348864,460896,6688128,6960119,8192128}{F*}|HQC_{128,192,256}|KYBER_{512,768,1024}{_90S*}|SI{DH,KE}_P{434,503,610,751}{_COMPRESSED*}]\n");
+  printf ("   [--pqc_kem_auth BIKE1_{L1,L3}_{CPA,FO}|CLASSIC_MCELIECE_{348864,460896,6688128,6960119,8192128}{F*}|HQC_{128,192,256}|KYBER_{512,768,1024}{_90S*}|SI{DH,KE}_P{434,503,610,751}{_COMPRESSED*}]\n");
+  printf ("   [--pqc_req_kem_auth BIKE1_{L1,L3}_{CPA,FO}|CLASSIC_MCELIECE_{348864,460896,6688128,6960119,8192128}{F*}|HQC_{128,192,256}|KYBER_{512,768,1024}{_90S*}|SI{DH,KE}_P{434,503,610,751}{_COMPRESSED*}]\n");
   printf ("   [--pqc_pub_key_mode RAW|CERT]\n");
   printf ("   [--basic_mut_auth NO|BASIC]\n");
   printf ("   [--mut_auth NO|WO_ENCAP|W_ENCAP|DIGESTS]\n");
@@ -82,9 +84,11 @@ print_usage (
   printf ("   [--dhe] is DHE algorithm. By default, SECP_384_R1,SECP_256_R1,FFDHE_3072,FFDHE_2048 is used.\n");
   printf ("   [--aead] is AEAD algorithm. By default, AES_256_GCM,CHACHA20_POLY1305 is used.\n");
   printf ("   [--key_schedule] is key schedule algorithm. By default, HMAC_HASH is used.\n");
-  printf ("   [--pqc_sig] is PQC sigature algorithm. By default, FALCON_1024,SPHINCS_{HARAKA,SHA256,SHAKE256}_128F_ROBUST is used.\n");
-  printf ("   [--pqc_req_sig] is PQC requester sigature algorithm. By default, FALCON_512 is used.\n");
-  printf ("   [--pqc_kem] is PQC key exchange algorithm. By default, KYBER_512,FRODOKEM_640_AES is used.\n");
+  printf ("   [--pqc_sig] is PQC sigature algorithm.\n");
+  printf ("   [--pqc_req_sig] is PQC requester sigature algorithm.\n");
+  printf ("   [--pqc_kem] is PQC key exchange algorithm.\n");
+  printf ("   [--pqc_kem_auth] is PQC KEM authentication algorithm.\n");
+  printf ("   [--pqc_req_kem_auth] is PQC requester KEM authentication algorithm.\n");
   printf ("           Above algorithms also support multiple flags. Please use ',' for them.\n");
   printf ("           SHA3 is not supported so far.\n");
   printf ("           For pqc CERT mode, only a limited set of hybrid algorithm can be used. Please refer to readme.\n");
@@ -847,6 +851,46 @@ process_args (
       }
     }
 
+    if (strcmp (argv[0], "--pqc_kem_auth") == 0) {
+      if (argc >= 2) {
+        if (!get_pqc_algo_flags_from_name (m_pqc_kem_value_string_table, ARRAY_SIZE(m_pqc_kem_value_string_table), argv[1], m_support_pqc_kem_auth_algo)) {
+          printf ("invalid --pqc_kem_auth %s\n", argv[1]);
+          print_usage (program_name);
+          exit (0);
+        }
+        //printf ("pqc_kem - ");
+        //dump_hex_str (m_support_pqc_kem_auth_algo, sizeof(pqc_algo_t));
+        //printf ("\n");
+        argc -= 2;
+        argv += 2;
+        continue;
+      } else {
+        printf ("invalid --pqc_kem_auth\n");
+        print_usage (program_name);
+        exit (0);
+      }
+    }
+
+    if (strcmp (argv[0], "--pqc_req_kem_auth") == 0) {
+      if (argc >= 2) {
+        if (!get_pqc_algo_flags_from_name (m_pqc_kem_value_string_table, ARRAY_SIZE(m_pqc_kem_value_string_table), argv[1], m_support_pqc_req_kem_auth_algo)) {
+          printf ("invalid --pqc_req_kem_auth %s\n", argv[1]);
+          print_usage (program_name);
+          exit (0);
+        }
+        //printf ("pqc_kem - ");
+        //dump_hex_str (m_support_pqc_req_kem_auth_algo, sizeof(pqc_algo_t));
+        //printf ("\n");
+        argc -= 2;
+        argv += 2;
+        continue;
+      } else {
+        printf ("invalid --pqc_req_kem_auth\n");
+        print_usage (program_name);
+        exit (0);
+      }
+    }
+
     if (strcmp (argv[0], "--pqc_pub_key_mode") == 0) {
       if (argc >= 2) {
         if (!get_value_from_name (m_pqc_pub_key_mode_string_table, ARRAY_SIZE(m_pqc_pub_key_mode_string_table), argv[1], &m_pqc_pub_key_mode)) {
@@ -968,7 +1012,7 @@ process_args (
           exit (0);
         }
         m_use_slot_id = (uint8)data32;
-        printf ("slot_id - 0x%02x\n", m_use_slot_id);
+        //printf ("slot_id - 0x%02x\n", m_use_slot_id);
         argc -= 2;
         argv += 2;
         continue;

@@ -92,4 +92,26 @@ validate_pqc_crypt_hybrid_sig (
   void
   );
 
+typedef enum {
+  PERF_ID_RESERVED,
+  PERF_ID_KEM_GEN,
+  PERF_ID_KEM_ENCAP,
+  PERF_ID_KEM_DECAP,
+  PERF_ID_SIG_GEN,
+  PERF_ID_SIG_VER,
+  PERF_ID_MAX,
+} perf_id_t;
+
+void
+calibration ();
+
+uint64
+perf_start (perf_id_t perf_id);
+
+uint64
+perf_stop (perf_id_t perf_id);
+
+void
+perf_dump ();
+
 #endif
