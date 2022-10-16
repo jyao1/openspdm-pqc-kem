@@ -34,6 +34,7 @@ SET(src_cryptlib_mbedtls
     pk/rsa_basic.c
     pk/rsa_ext.c
     pk/x509.c
+    pk/pqc_hybrid.c
     rand/rand.c
     sys_call/mem_allocation.c
     sys_call/crt_wrapper_host.c

@@ -601,6 +601,32 @@ sm2_get_public_key_from_x509 (
 }
 
 /**
+  Retrieve the QPC public key from one DER-encoded X509 certificate.
+
+  @param[in]  cert         Pointer to the DER-encoded X509 certificate.
+  @param[in]  cert_size     size of the X509 certificate in bytes.
+  @param[out] pqc_hybrid_context   Pointer to new-generated QPC context which contain the retrieved
+                           QPC public key component. Use pqc_hybrid__free() function to free the
+                           resource.
+
+  If cert is NULL, then return FALSE.
+  If pqc_hybrid_context is NULL, then return FALSE.
+
+  @retval  TRUE   QPC public key was retrieved successfully.
+  @retval  FALSE  Fail to retrieve QPC public key from X509 certificate.
+
+**/
+boolean
+pqc_hybrid_get_public_key_from_x509 (
+  IN   const uint8  *cert,
+  IN   uintn        cert_size,
+  OUT  void         **pqc_hybrid_context
+  )
+{
+  return FALSE;
+}
+
+/**
   Verify one X509 certificate was issued by the trusted CA.
 
   @param[in]      cert         Pointer to the DER-encoded X509 certificate to be verified.
