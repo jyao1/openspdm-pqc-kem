@@ -623,6 +623,7 @@ pqc_hybrid_get_public_key_from_x509 (
   OUT  void         **pqc_hybrid_context
   )
 {
+  ASSERT(FALSE);
   return FALSE;
 }
 

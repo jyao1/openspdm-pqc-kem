@@ -57,8 +57,8 @@ openssl req -nodes -newkey rsa:3072 -keyout inter.key -out inter.req -sha256 -ba
 openssl req -nodes -newkey rsa:2048 -keyout end_requester.key -out end_requester.req -sha256 -batch -subj "/CN=intel test RSA requseter cert"
 openssl req -nodes -newkey rsa:2048 -keyout end_responder.key -out end_responder.req -sha256 -batch -subj "/CN=intel test RSA responder cert"
 openssl x509 -req -in inter.req -out inter.cert -CA ca.cert -CAkey ca.key -sha256 -days 3650 -set_serial 1 -extensions v3_inter -extfile ../openssl.cnf
-openssl x509 -req -in end_requester.req -out end_requester.cert -CA inter.cert -CAkey inter.key -sha256 -days 365 -set_serial 2 -extensions v3_end -extfile ../openssl.cnf
-openssl x509 -req -in end_responder.req -out end_responder.cert -CA inter.cert -CAkey inter.key -sha256 -days 365 -set_serial 3 -extensions v3_end -extfile ../openssl.cnf
+openssl x509 -req -in end_requester.req -out end_requester.cert -CA inter.cert -CAkey inter.key -sha256 -days 3650 -set_serial 2 -extensions v3_end -extfile ../openssl.cnf
+openssl x509 -req -in end_responder.req -out end_responder.cert -CA inter.cert -CAkey inter.key -sha256 -days 3650 -set_serial 3 -extensions v3_end -extfile ../openssl.cnf
 openssl asn1parse -in ca.cert -out ca.cert.der
 openssl asn1parse -in inter.cert -out inter.cert.der
 openssl asn1parse -in end_requester.cert -out end_requester.cert.der

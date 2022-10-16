@@ -21,6 +21,7 @@ pqc_hybrid_free (
   IN  void  *pqc_hybrid_context
   )
 {
+  ASSERT(FALSE);
 }
 
 /**
@@ -49,6 +50,7 @@ pqc_hybrid_sign (
   IN OUT  uintn        *sig_size
   )
 {
+  ASSERT(FALSE);
   return FALSE;
 }
 
@@ -76,5 +78,6 @@ pqc_hybrid_verify (
   IN  uintn        sig_size
   )
 {
+  ASSERT(FALSE);
   return FALSE;
 }

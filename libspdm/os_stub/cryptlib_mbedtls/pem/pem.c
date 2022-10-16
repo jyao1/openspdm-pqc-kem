@@ -296,5 +296,6 @@ pqc_hybrid_get_private_key_from_pem (
   OUT  void         **pqc_hybrid_context
   )
 {
+  ASSERT(FALSE);
   return FALSE;
 }
